@@ -1,50 +1,65 @@
 "use client";
 
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { UploadDocumentCard } from "@/components/dashboard/upload-card";
+import { RecentCoursesSection } from "@/components/dashboard/recent-courses";
+import { ContinueLearningSection } from "@/components/dashboard/continue-learning";
+import { LearningAnalyticsSection } from "@/components/dashboard/learning-analytics";
+import { useUser } from "@clerk/nextjs";
+import { Sparkles } from "lucide-react";
 
 export default function DashboardPage() {
   const { isLoaded, user } = useUser();
 
   if (!isLoaded) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-200">
-        <p>Loading dashboard...</p>
-      </main>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-zinc-400">Loading...</p>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-10">
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-8 shadow-lg shadow-zinc-950/20">
-          <div className="flex items-center gap-6">
-            <img
-                src={user?.imageUrl} 
-                alt={user?.fullName ?? "User avatar"}
-                className="h-24 w-24 rounded-full border border-zinc-800 object-cover"
-            />
-            <div>
-              <p className="text-sm uppercase tracking-[0.32em] text-indigo-400">Welcome back</p>
-              <h1 className="mt-2 text-3xl font-semibold text-white">{user?.fullName ?? "Learner"}</h1>
-              <p className="mt-2 text-sm text-zinc-400">{user?.emailAddresses?.[0]?.emailAddress ?? "No email available"}</p>
+    <DashboardLayout>
+      <div className="space-y-12">
+        {/* Welcome Hero */}
+        <section className="pt-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-indigo-400" />
+              <p className="text-sm font-medium text-indigo-400">Welcome back!</p>
             </div>
+            <h1 className="text-4xl font-bold text-zinc-50">
+              Hi {user?.fullName?.split(" ")[0]}, ready to learn something new?
+            </h1>
+            <p className="text-lg text-zinc-400 mt-2 max-w-2xl">
+              Transform your documents into interactive learning experiences. Upload a PDF and let AI create personalized courses for you.
+            </p>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900/80 p-8 shadow-lg shadow-zinc-950/20">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Dashboard</h2>
-              <p className="mt-2 text-zinc-400">Your authenticated workspace is ready.</p>
-            </div>
-            <SignOutButton>
-              <button className="rounded-full bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500">
-                Sign out
-              </button>
-            </SignOutButton>
-          </div>
+        {/* Upload Card */}
+        <section>
+          <UploadDocumentCard />
         </section>
+
+        {/* Learning Analytics */}
+        <section>
+          <LearningAnalyticsSection />
+        </section>
+
+        {/* Recent Courses & Continue Learning */}
+        <div className="grid gap-12 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <RecentCoursesSection />
+          </div>
+          <div>
+            <ContinueLearningSection />
+          </div>
+        </div>
       </div>
-    </main>
+    </DashboardLayout>
   );
 }
