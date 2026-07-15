@@ -8,6 +8,7 @@ from app.repositories.document import get_document_repository
 from app.schemas.document import DocumentMetadata, DocumentUploadResponse
 from app.schemas.extracted_document import DocumentStatus
 from app.services.document_processing_service import get_document_processing_service
+from app.services.text_cleaning_service import get_text_cleaning_service
 
 
 class DocumentService:
@@ -93,8 +94,11 @@ class DocumentService:
             uploaded_at=metadata.upload_timestamp,
         )
 
+        # Clean the extracted text and write cleaned output files.
+        cleaned_document = get_text_cleaning_service().clean_document(extracted_document)
+
         # Mark document ready for downstream AI processing.
-        self.repository.update_status(metadata.document_id, DocumentStatus.TEXT_EXTRACTED.value)
+        self.repository.update_status(metadata.document_id, DocumentStatus.TEXT_CLEANED.value)
 
         return DocumentUploadResponse(
             document_id=metadata.document_id,

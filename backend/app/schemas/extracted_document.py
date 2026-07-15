@@ -106,10 +106,11 @@ class ChunkContent(BaseModel):
 
 class CleanTextInfo(BaseModel):
     """Cleaned text with processing status."""
-
     status: str = Field("PENDING", description="Cleaning status")
     text: Optional[str] = Field(None, description="Cleaned text content")
-
+    character_count: Optional[int] = Field(None, description="Character count of cleaned text")
+    word_count: Optional[int] = Field(None, description="Word count of cleaned text")
+    cleaning_time_ms: Optional[int] = Field(None, description="Time taken to clean in milliseconds")
     class Config:
         from_attributes = True
 
