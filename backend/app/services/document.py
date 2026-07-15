@@ -9,6 +9,7 @@ from app.schemas.document import DocumentMetadata, DocumentUploadResponse
 from app.schemas.extracted_document import DocumentStatus
 from app.services.document_processing_service import get_document_processing_service
 from app.services.text_cleaning_service import get_text_cleaning_service
+from app.services.chunk_service import get_chunk_service
 
 
 class DocumentService:
@@ -97,15 +98,18 @@ class DocumentService:
         # Clean the extracted text and write cleaned output files.
         cleaned_document = get_text_cleaning_service().clean_document(extracted_document)
 
-        # Mark document ready for downstream AI processing.
-        self.repository.update_status(metadata.document_id, DocumentStatus.TEXT_CLEANED.value)
+        # Run chunking step (semantic chunk generation)
+        chunked_document = get_chunk_service().chunk_document(cleaned_document)
+
+        # Mark document ready for next stage.
+        self.repository.update_status(metadata.document_id, DocumentStatus.CHUNKED.value)
 
         return DocumentUploadResponse(
             document_id=metadata.document_id,
             filename=metadata.filename,
-            page_count=extracted_document.document.page_count,
-            character_count=extracted_document.document.character_count,
-            status=extracted_document.document.status.value,
+            page_count=chunked_document.document.page_count,
+            character_count=chunked_document.document.character_count,
+            status=chunked_document.document.status.value,
         )
     
     def get_document(self, document_id: str) -> Optional[DocumentMetadata]:

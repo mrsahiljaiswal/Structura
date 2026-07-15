@@ -99,6 +99,7 @@ class ChunkContent(BaseModel):
     character_count: int = Field(..., description="Character count of the chunk")
     text: str = Field(..., description="Chunk text content")
     embedding_status: str = Field("PENDING", description="Embedding status")
+    course_status: str = Field("PENDING", description="Course generation status")
 
     class Config:
         from_attributes = True
