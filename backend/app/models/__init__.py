@@ -4,4 +4,5 @@
 #
 #   from app.models.user import User  # noqa: F401
 #
-# No models are defined yet -- this project is configuration-only.
+from .course_models import Document, Course, Chapter, Lesson  # noqa: F401
+

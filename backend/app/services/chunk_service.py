@@ -1,7 +1,10 @@
 from pathlib import Path
 from typing import List
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+try:
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+except ImportError:
+    RecursiveCharacterTextSplitter = None
 
 from app.schemas.extracted_document import (
     ExtractedDocument,
@@ -20,9 +23,24 @@ class ChunkService:
 
     def __init__(self):
         # splitter configuration specified by the product
-        self.splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1200, chunk_overlap=150, length_function=len
-        )
+        if RecursiveCharacterTextSplitter is not None:
+            self.splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1200, chunk_overlap=150, length_function=len
+            )
+        else:
+            self.splitter = None
+
+    def _fallback_split(self, text: str) -> List[str]:
+        chunks = []
+        max_size = 1200
+        overlap = 150
+        i = 0
+        while i < len(text):
+            start = max(0, i - overlap) if i != 0 else 0
+            chunk_text = text[start : i + max_size]
+            chunks.append(chunk_text)
+            i += max_size - overlap
+        return chunks
 
     def chunk_document(self, document: ExtractedDocument) -> ExtractedDocument:
         """Create semantic chunks from `document.clean_text.text`.
@@ -36,7 +54,10 @@ class ChunkService:
         text = document.clean_text.text
 
         # Split into chunks preserving order
-        split_chunks: List[str] = self.splitter.split_text(text)
+        if self.splitter is not None:
+            split_chunks: List[str] = self.splitter.split_text(text)
+        else:
+            split_chunks: List[str] = self._fallback_split(text)
 
         # Prepare a join of original page texts to best-effort map pages
         joined_pages = "\n\n".join(p.text for p in document.pages)

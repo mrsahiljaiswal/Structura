@@ -14,6 +14,7 @@ class DocumentUploadResponse(BaseModel):
     page_count: int = Field(..., description="Total number of pages extracted")
     character_count: int = Field(..., description="Total number of characters extracted")
     status: str = Field(default="TEXT_EXTRACTED", description="Document processing status")
+    course_id: Optional[UUID] = Field(None, description="If a course was created, the course ID")
     
     class Config:
         from_attributes = True

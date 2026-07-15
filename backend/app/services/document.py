@@ -10,6 +10,9 @@ from app.schemas.extracted_document import DocumentStatus
 from app.services.document_processing_service import get_document_processing_service
 from app.services.text_cleaning_service import get_text_cleaning_service
 from app.services.chunk_service import get_chunk_service
+from app.services.course_planner_service import get_course_planner_service
+from app.services.lesson_generation_service import get_lesson_generation_service
+from app.services.course_builder_service import persist_course_sync, ensure_tables
 
 
 class DocumentService:
@@ -104,12 +107,56 @@ class DocumentService:
         # Mark document ready for next stage.
         self.repository.update_status(metadata.document_id, DocumentStatus.CHUNKED.value)
 
+        # Ensure DB tables exist (dev convenience)
+        try:
+            ensure_tables()
+        except Exception:
+            pass
+
+        # Generate course outline + lessons (use planner + lesson generator)
+        planner = get_course_planner_service()
+        lesson_gen = get_lesson_generation_service()
+
+        outline = planner.generate_outline(chunked_document)
+
+        # attach lessons per chapter
+        course = {
+            "title": outline.get("title"),
+            "description": outline.get("description"),
+            "difficulty": outline.get("difficulty", "Intermediate"),
+            "chapters": [],
+        }
+
+        chunks = getattr(chunked_document, "chunks", []) or []
+        chapters = outline.get("chapters", [])
+        chunks_per_chapter = max(1, len(chunks) // max(1, len(chapters)))
+
+        for ci, ch in enumerate(chapters):
+            start = ci * chunks_per_chapter
+            end = start + chunks_per_chapter
+            relevant = chunks[start:end]
+            lessons_out = []
+            for lesson_title in ch.get("lessons", []):
+                lesson = lesson_gen.generate_lesson(lesson_title, ch.get("title"), relevant)
+                lessons_out.append(lesson)
+            course["chapters"].append({"title": ch.get("title"), "lessons": lessons_out})
+
+        # Persist course to DB
+        try:
+            course_id = persist_course_sync(metadata.document_id, metadata.stored_filename, course)
+            self.repository.update_status(metadata.document_id, DocumentStatus.COURSE_GENERATED.value)
+            status = DocumentStatus.COURSE_GENERATED.value
+        except Exception:
+            course_id = None
+            status = DocumentStatus.CHUNKED.value
+
         return DocumentUploadResponse(
             document_id=metadata.document_id,
             filename=metadata.filename,
             page_count=chunked_document.document.page_count,
             character_count=chunked_document.document.character_count,
-            status=chunked_document.document.status.value,
+            status=status,
+            course_id=course_id,
         )
     
     def get_document(self, document_id: str) -> Optional[DocumentMetadata]:
