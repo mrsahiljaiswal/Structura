@@ -16,3 +16,17 @@ Structura is an AI-powered learning platform that converts PDFs into structured 
 ## Status
 
 🚧 Under Development
+
+## Features
+
+- [ ] Authentication
+- [ ] Dashboard
+- [ ] PDF Upload
+- [ ] AI Course Generation
+- [ ] Course Viewer
+- [ ] AI Tutor
+- [ ] Quiz Generation
+- [ ] Learning Progress
+- [ ] Search
+- [ ] Learning History
+- [ ] Deployment
