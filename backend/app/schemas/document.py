@@ -11,10 +11,9 @@ class DocumentUploadResponse(BaseModel):
     
     document_id: UUID = Field(..., description="Unique document ID")
     filename: str = Field(..., description="Original filename")
-    stored_filename: str = Field(..., description="Stored filename with UUID")
-    size_bytes: int = Field(..., description="File size in bytes")
-    upload_timestamp: datetime = Field(..., description="Upload timestamp")
-    status: str = Field(default="pending", description="Processing status")
+    page_count: int = Field(..., description="Total number of pages extracted")
+    character_count: int = Field(..., description="Total number of characters extracted")
+    status: str = Field(default="TEXT_EXTRACTED", description="Document processing status")
     
     class Config:
         from_attributes = True

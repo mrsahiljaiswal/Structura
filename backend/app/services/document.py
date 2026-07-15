@@ -1,12 +1,13 @@
 """Document service for handling document operations."""
 
-import os
 import uuid
 from pathlib import Path
 from typing import Optional
 
 from app.repositories.document import get_document_repository
 from app.schemas.document import DocumentMetadata, DocumentUploadResponse
+from app.schemas.extracted_document import DocumentStatus
+from app.services.document_processing_service import get_document_processing_service
 
 
 class DocumentService:
@@ -82,14 +83,25 @@ class DocumentService:
             stored_filename=stored_filename,
             size_bytes=len(file_content),
         )
-        
+
+        # Extract PDF text immediately after saving the file.
+        processing_service = get_document_processing_service()
+        extracted_document = processing_service.extract_text_from_pdf(
+            file_path=file_path,
+            document_id=f"doc_{metadata.document_id}",
+            original_filename=filename,
+            uploaded_at=metadata.upload_timestamp,
+        )
+
+        # Mark document ready for downstream AI processing.
+        self.repository.update_status(metadata.document_id, DocumentStatus.TEXT_EXTRACTED.value)
+
         return DocumentUploadResponse(
             document_id=metadata.document_id,
             filename=metadata.filename,
-            stored_filename=metadata.stored_filename,
-            size_bytes=metadata.size_bytes,
-            upload_timestamp=metadata.upload_timestamp,
-            status=metadata.status,
+            page_count=extracted_document.document.page_count,
+            character_count=extracted_document.document.character_count,
+            status=extracted_document.document.status.value,
         )
     
     def get_document(self, document_id: str) -> Optional[DocumentMetadata]:

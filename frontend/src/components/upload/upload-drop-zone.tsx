@@ -6,11 +6,19 @@ import { Upload, FileText, AlertCircle, CheckCircle, X } from "lucide-react";
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_TYPES = ["application/pdf"];
 
+interface UploadProcessingResult {
+  filename: string;
+  page_count: number;
+  character_count: number;
+  status: string;
+}
+
 interface UploadState {
   status: "idle" | "uploading" | "success" | "error";
   file: File | null;
   progress: number;
   error: string | null;
+  processingResult: UploadProcessingResult | null;
 }
 
 export function UploadDropZone() {
@@ -19,6 +27,7 @@ export function UploadDropZone() {
     file: null,
     progress: 0,
     error: null,
+    processingResult: null,
   });
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -35,7 +44,7 @@ export function UploadDropZone() {
   const handleFileSelect = useCallback((file: File) => {
     const error = validateFile(file);
     if (error) {
-      setUploadState({ status: "error", file, progress: 0, error });
+      setUploadState({ status: "error", file, progress: 0, error, processingResult: null });
       return;
     }
 
@@ -44,6 +53,7 @@ export function UploadDropZone() {
       file,
       progress: 0,
       error: null,
+      processingResult: null,
     });
   }, [validateFile]);
 
@@ -97,6 +107,7 @@ export function UploadDropZone() {
       formData.append("file", uploadState.file);
 
       const xhr = new XMLHttpRequest();
+      xhr.responseType = "json";
 
       xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
@@ -106,11 +117,14 @@ export function UploadDropZone() {
       });
 
       xhr.addEventListener("load", () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
+        const response = xhr.response as UploadProcessingResult | null;
+
+        if (xhr.status >= 200 && xhr.status < 300 && response?.filename) {
           setUploadState((prev) => ({
             ...prev,
             status: "success",
             progress: 100,
+            processingResult: response,
           }));
         } else {
           setUploadState((prev) => ({
@@ -128,8 +142,6 @@ export function UploadDropZone() {
           error: "Network error. Please try again.",
         }));
       });
-      console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
-console.log("Final URL:", `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/upload`);
       xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/upload`);
       xhr.send(formData);
     } catch (error) {
@@ -138,6 +150,7 @@ console.log("Final URL:", `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/u
         file: uploadState.file,
         progress: 0,
         error: error instanceof Error ? error.message : "Upload failed",
+        processingResult: null,
       });
     }
   }, [uploadState.file]);
@@ -148,6 +161,7 @@ console.log("Final URL:", `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/u
       file: null,
       progress: 0,
       error: null,
+      processingResult: null,
     });
   }, []);
 
@@ -254,10 +268,36 @@ console.log("Final URL:", `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/u
             <div>
               <p className="font-semibold text-green-50">Upload successful!</p>
               <p className="text-sm text-green-200/70">
-                Your document is being processed by AI
+                Status: Ready for AI Processing
               </p>
             </div>
           </div>
+          {uploadState.processingResult && (
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3 mt-4">
+              <p className="text-sm text-zinc-400">Filename</p>
+              <p className="text-base font-semibold text-zinc-100">
+                {uploadState.processingResult.filename}
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-lg bg-zinc-900/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                    Pages
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-indigo-300">
+                    {uploadState.processingResult.page_count}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-zinc-900/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                    Characters
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-violet-300">
+                    {uploadState.processingResult.character_count.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <button
             onClick={handleReset}
