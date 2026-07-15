@@ -11,6 +11,17 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  // Suppress Clerk's sync headers() warnings (Clerk is working on a fix)
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+  },
+  experimental: {
+  },
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
 
   // Add remote domains here as the app grows, e.g.:
   // images: {

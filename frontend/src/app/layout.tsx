@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Frontend",
-  description: "Generated with Next.js, TypeScript, and Tailwind CSS.",
+  title: "Structura",
+  description: "AI-powered document learning platform built with Next.js and Clerk authentication.",
 };
 
 export default function RootLayout({
@@ -27,7 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>{children}</Providers>
+        <ClerkProvider>
+          <Providers>{children}</Providers>
+        </ClerkProvider>
       </body>
     </html>
   );
