@@ -1,82 +1,83 @@
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+/**
+ * Purpose: Redesigned Document Upload Page for Structura
+ * Composes UploadDropZone inside centered UploadLayout.
+ */
+
+"use client";
+
+import React from "react";
+import { UploadLayout } from "@/components/layouts/upload-layout";
 import { UploadDropZone } from "@/components/upload/upload-drop-zone";
-import { BookOpen, Sparkles } from "lucide-react";
+import { BookOpen, Sparkles, AlertCircle } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 export default function UploadPage() {
+  const breadcrumbs = [
+    { label: "Upload", href: "/dashboard/upload" },
+  ];
+
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl space-y-8">
-        {/* Header */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-400" />
-            <p className="text-sm font-medium text-indigo-400">Upload & Generate</p>
+    <UploadLayout breadcrumbs={breadcrumbs}>
+      <div className="space-y-8">
+        {/* Header Title Block */}
+        <section className="space-y-3 text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start gap-2 text-indigo-400 font-semibold text-xs tracking-wider uppercase">
+            <Sparkles className="h-4 w-4" />
+            <span>Generate Course Outline</span>
           </div>
-          <h1 className="text-4xl font-bold text-zinc-50">
-            Transform Your Documents
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+            Ingest Learning Materials
           </h1>
-          <p className="text-lg text-zinc-400 max-w-2xl">
-            Upload a PDF, research paper, textbook, or any document. Our AI will automatically generate a structured course with lessons, quizzes, and an interactive tutor.
+          <p className="text-sm md:text-base text-muted-foreground max-w-2xl leading-relaxed">
+            Upload a PDF, research article, or textbook. Our AI parses and chunks your documents, plans chapters outline, and writes structured summaries in real-time.
           </p>
         </section>
 
-        {/* Upload Zone */}
-        <section>
-          <UploadDropZone />
-        </section>
+        {/* Upload Drop Zone Card */}
+        <UploadDropZone />
 
-        {/* Info Cards */}
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
-            <p className="text-2xl font-bold text-indigo-400">1</p>
-            <p className="font-semibold text-zinc-50 mt-2">Upload</p>
-            <p className="text-sm text-zinc-400 mt-1">
-              Drag and drop your PDF or click to select
+        {/* Supporting Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="p-5 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
+            <span className="text-lg font-black text-indigo-400">01</span>
+            <h3 className="font-bold text-foreground mt-2 text-sm">Upload File</h3>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Select or drop a standard PDF document (up to 50 MB limits).
             </p>
-          </div>
+          </Card>
 
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
-            <p className="text-2xl font-bold text-violet-400">2</p>
-            <p className="font-semibold text-zinc-50 mt-2">Generate</p>
-            <p className="text-sm text-zinc-400 mt-1">
-              AI extracts knowledge and creates content
+          <Card className="p-5 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
+            <span className="text-lg font-black text-violet-400">02</span>
+            <h3 className="font-bold text-foreground mt-2 text-sm">AI Processing</h3>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              We extract text, segment chunks, and design chapter lessons.
             </p>
-          </div>
+          </Card>
 
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
-            <p className="text-2xl font-bold text-indigo-400">3</p>
-            <p className="font-semibold text-zinc-50 mt-2">Learn</p>
-            <p className="text-sm text-zinc-400 mt-1">
-              Access lessons, quizzes, and AI tutor
+          <Card className="p-5 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
+            <span className="text-lg font-black text-indigo-400">03</span>
+            <h3 className="font-bold text-foreground mt-2 text-sm">Start Learning</h3>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Jump straight into read notes, taking quizzes, and talking to tutors.
             </p>
-          </div>
-        </section>
+          </Card>
+        </div>
 
-        {/* FAQ */}
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-zinc-50">Supported Formats</h2>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <BookOpen className="h-5 w-5 text-indigo-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-zinc-50">PDF Documents</p>
-                <p className="text-sm text-zinc-400 mt-1">
-                  Research papers, textbooks, technical documentation, and more
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-zinc-700 pt-4">
-              <p className="text-sm text-zinc-400">
-                <strong className="text-zinc-50">File limit:</strong> 50 MB per document
-              </p>
-              <p className="text-sm text-zinc-400 mt-2">
-                <strong className="text-zinc-50">Processing time:</strong> Typically 2-5 minutes depending on document size
+        {/* Details Note Alert */}
+        <Card className="p-5 border border-border/20 bg-zinc-900/10">
+          <div className="flex items-start gap-3.5">
+            <BookOpen className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                Processing Benchmark Limits
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                Course creation latency is determined by your document's text volume. Typical generation ranges between 20 to 50 seconds.
               </p>
             </div>
           </div>
-        </section>
+        </Card>
       </div>
-    </DashboardLayout>
+    </UploadLayout>
   );
 }
