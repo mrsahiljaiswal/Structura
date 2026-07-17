@@ -269,7 +269,7 @@ export function CommandPalette({
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center p-8 text-center text-zinc-500">
-                  <p>No results found for "{search}"</p>
+                  <p>No results found for &quot;{search}&quot;</p>
                 </div>
               )}
             </div>

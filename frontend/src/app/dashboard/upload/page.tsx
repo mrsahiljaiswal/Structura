@@ -72,7 +72,7 @@ export default function UploadPage() {
                 Processing Benchmark Limits
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                Course creation latency is determined by your document's text volume. Typical generation ranges between 20 to 50 seconds.
+                Course creation latency is determined by your document&apos;s text volume. Typical generation ranges between 20 to 50 seconds.
               </p>
             </div>
           </div>

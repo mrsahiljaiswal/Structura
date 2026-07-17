@@ -1,3 +1,6 @@
+# DEPRECATED: This service is deprecated and will be removed in a future release.
+# Use the consolidated app.services.course_assembly module instead.
+
 from pathlib import Path
 import re
 import fitz

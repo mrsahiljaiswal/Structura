@@ -1,3 +1,6 @@
+# DEPRECATED: This service is deprecated and will be removed in a future release.
+# Use the consolidated app.services.educational_planner module instead.
+
 import os
 import json
 from typing import Dict, Any, List

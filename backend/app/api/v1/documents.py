@@ -38,6 +38,12 @@ async def upload_document(file: UploadFile = File(...)) -> DocumentUploadRespons
             file_content=content,
         )
         
+        if response.course_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Course generation pipeline execution failed. Check server logs.",
+            )
+            
         return response
         
     except ValueError as e:

@@ -1,3 +1,6 @@
+# DEPRECATED: This service is deprecated and will be removed in a future release.
+# Use the consolidated app.services.semantic_segmentation module instead.
+
 from pathlib import Path
 from typing import List
 

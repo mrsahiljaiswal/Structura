@@ -1,5 +1,6 @@
 """Document service for handling document operations."""
 
+import logging
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -13,6 +14,8 @@ from app.services.chunk_service import get_chunk_service
 from app.services.course_planner_service import get_course_planner_service
 from app.services.lesson_generation_service import get_lesson_generation_service
 from app.services.course_builder_service import persist_course_sync, ensure_tables
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentService:
@@ -89,72 +92,65 @@ class DocumentService:
             size_bytes=len(file_content),
         )
 
-        # Extract PDF text immediately after saving the file.
-        processing_service = get_document_processing_service()
-        extracted_document = processing_service.extract_text_from_pdf(
-            file_path=file_path,
-            document_id=f"doc_{metadata.document_id}",
-            original_filename=filename,
-            uploaded_at=metadata.upload_timestamp,
-        )
-
-        # Clean the extracted text and write cleaned output files.
-        cleaned_document = get_text_cleaning_service().clean_document(extracted_document)
-
-        # Run chunking step (semantic chunk generation)
-        chunked_document = get_chunk_service().chunk_document(cleaned_document)
-
-        # Mark document ready for next stage.
-        self.repository.update_status(metadata.document_id, DocumentStatus.CHUNKED.value)
-
+        import json
         # Ensure DB tables exist (dev convenience)
         try:
+            logger.info("Ensuring database tables exist...")
             ensure_tables()
-        except Exception:
-            pass
+            logger.info("Database tables ready")
+        except Exception as e:
+            logger.error(f"Failed to ensure tables: {e}", exc_info=True)
 
-        # Generate course outline + lessons (use planner + lesson generator)
-        planner = get_course_planner_service()
-        lesson_gen = get_lesson_generation_service()
-
-        outline = planner.generate_outline(chunked_document)
-
-        # attach lessons per chapter
-        course = {
-            "title": outline.get("title"),
-            "description": outline.get("description"),
-            "difficulty": outline.get("difficulty", "Intermediate"),
-            "chapters": [],
-        }
-
-        chunks = getattr(chunked_document, "chunks", []) or []
-        chapters = outline.get("chapters", [])
-        chunks_per_chapter = max(1, len(chunks) // max(1, len(chapters)))
-
-        for ci, ch in enumerate(chapters):
-            start = ci * chunks_per_chapter
-            end = start + chunks_per_chapter
-            relevant = chunks[start:end]
-            lessons_out = []
-            for lesson_title in ch.get("lessons", []):
-                lesson = lesson_gen.generate_lesson(lesson_title, ch.get("title"), relevant)
-                lessons_out.append(lesson)
-            course["chapters"].append({"title": ch.get("title"), "lessons": lessons_out})
-
-        # Persist course to DB
+        # Run consolidated Structura Pipeline
         try:
-            course_id = persist_course_sync(metadata.document_id, metadata.stored_filename, course)
+            logger.info("Starting native 10-module Structura Pipeline...")
+            from app.pipeline.orchestrator import StructuraPipeline
+
+            # Establish output directory for intermediate pipeline outputs
+            artifacts_dir = self.UPLOADS_DIR / f"{metadata.document_id}_artifacts"
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+            # Initialize orchestrator
+            pipeline = StructuraPipeline(output_dir=str(artifacts_dir))
+
+            # Run full pipeline
+            logger.info(f"Running pipeline on {file_path} with title: {filename}")
+            final_course = pipeline.run(pdf_path=str(file_path), course_title=filename)
+
+            logger.info("Persisting course structure and lessons to database...")
+            course_id = persist_course_sync(metadata.document_id, metadata.stored_filename, final_course)
+            logger.info(f"Course created with ID: {course_id}")
+
             self.repository.update_status(metadata.document_id, DocumentStatus.COURSE_GENERATED.value)
             status = DocumentStatus.COURSE_GENERATED.value
-        except Exception:
+
+            # Extract metrics from intermediate extraction artifact
+            extraction_file = artifacts_dir / "document.extracted.json"
+            page_count = 0
+            character_count = 0
+            if extraction_file.exists():
+                try:
+                    with open(extraction_file, "r", encoding="utf-8") as f:
+                        extracted_data = json.load(f)
+                    page_count = extracted_data.get("page_count", 0)
+                    for p in extracted_data.get("pages", []):
+                        for b in p.get("blocks", []):
+                            character_count += len(b.get("text", ""))
+                except Exception as ex:
+                    logger.error(f"Failed to read extracted doc details: {ex}")
+
+        except Exception as e:
+            logger.error(f"Failed to generate and persist course via Structura: {e}", exc_info=True)
             course_id = None
+            page_count = 0
+            character_count = 0
             status = DocumentStatus.CHUNKED.value
 
         return DocumentUploadResponse(
             document_id=metadata.document_id,
             filename=metadata.filename,
-            page_count=chunked_document.document.page_count,
-            character_count=chunked_document.document.character_count,
+            page_count=page_count,
+            character_count=character_count,
             status=status,
             course_id=course_id,
         )

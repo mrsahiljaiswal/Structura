@@ -8,6 +8,10 @@ validated, and centralized.
 
 from typing import Annotated, Any, Literal
 
+from dotenv import load_dotenv
+# Load environment variables from .env file into os.environ
+load_dotenv()
+
 from pydantic import AnyUrl, BeforeValidator, PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

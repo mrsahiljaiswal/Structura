@@ -59,8 +59,21 @@ export default function DashboardPage() {
   // Calculate dynamic stats
   const totalCourses = courses.length;
   const completedLessonsCount = coursePersistence.getCompletedLessons().length;
-  const totalStudyTimeSec = coursePersistence.getStudyTime();
-  const totalStudyTimeHr = Math.ceil(totalStudyTimeSec / 3600) || 12; // fallback to mock hours if 0
+  
+  // Calculate total study time dynamically based on word counts of completed lessons
+  let totalStudyTimeSec = 0;
+  courses.forEach((course) => {
+    course.chapters.forEach((chapter) => {
+      chapter.lessons.forEach((lesson) => {
+        if (coursePersistence.isLessonCompleted(lesson.id)) {
+          const wordCount = lesson.content ? lesson.content.split(/\s+/).length : 0;
+          const readingMinutes = Math.max(1, Math.round(wordCount / 200));
+          totalStudyTimeSec += readingMinutes * 60;
+        }
+      });
+    });
+  });
+  const totalStudyTimeHr = parseFloat((totalStudyTimeSec / 3600).toFixed(1));
 
   // Quick Action Buttons
   const quickActions = [
@@ -104,11 +117,11 @@ export default function DashboardPage() {
           />
           <StatCard
             label="Avg Quiz Score"
-            value="88%"
-            change="+3% improvement"
+            value={`${coursePersistence.getAvgQuizScore()}%`}
+            change="Based on completed quizzes"
             icon={TrendingUp}
             colorClass="text-amber-400"
-            chartData={[82, 85, 84, 87, 88, 87, 88]}
+            chartData={[82, 85, 84, 87, 88, 87, coursePersistence.getAvgQuizScore() || 88]}
           />
         </div>
 

@@ -1,4 +1,7 @@
 """
+DEPRECATED: This service is deprecated and will be removed in a future release.
+Use the consolidated app.services.document_normalization module instead.
+
 Text Cleaning Service
 
 Preprocesses extracted document text for AI processing.

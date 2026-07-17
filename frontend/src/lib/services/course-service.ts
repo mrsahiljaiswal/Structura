@@ -150,10 +150,28 @@ class CoursePersistenceService {
     return time ? parseInt(time, 10) : 0;
   }
 
+  getStudyTimeByDay(): Record<string, number> {
+    if (typeof window === "undefined") return {};
+    const saved = localStorage.getItem("structura-study-time-by-day");
+    if (!saved) return {};
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return {};
+    }
+  }
+
   addStudyTime(seconds: number) {
     if (typeof window === "undefined") return;
     const current = this.getStudyTime();
     localStorage.setItem(KEYS.STUDY_TIME, (current + seconds).toString());
+    
+    // Log per-day study time
+    const day = new Date().toLocaleDateString("en-US", { weekday: "short" }); // e.g. "Mon", "Tue"
+    const byDay = this.getStudyTimeByDay();
+    byDay[day] = (byDay[day] || 0) + seconds;
+    localStorage.setItem("structura-study-time-by-day", JSON.stringify(byDay));
+
     this.updateStreak();
   }
 
@@ -202,6 +220,33 @@ class CoursePersistenceService {
     localStorage.setItem(`${KEYS.NOTES_PREFIX}${lessonId}`, notes);
   }
 
+  // Quiz Scores
+  getQuizScores(): Record<string, number> {
+    if (typeof window === "undefined") return {};
+    const saved = localStorage.getItem("structura-quiz-scores");
+    if (!saved) return {};
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return {};
+    }
+  }
+
+  saveQuizScore(lessonId: string, scorePercent: number) {
+    if (typeof window === "undefined") return;
+    const scores = this.getQuizScores();
+    scores[lessonId] = scorePercent;
+    localStorage.setItem("structura-quiz-scores", JSON.stringify(scores));
+    window.dispatchEvent(new Event("storage"));
+  }
+
+  getAvgQuizScore(): number {
+    const scores = Object.values(this.getQuizScores());
+    if (scores.length === 0) return 0;
+    const sum = scores.reduce((a, b) => a + b, 0);
+    return Math.round(sum / scores.length);
+  }
+
   // Master cache reset
   clearAllData() {
     if (typeof window === "undefined") return;
@@ -210,6 +255,8 @@ class CoursePersistenceService {
     localStorage.removeItem(KEYS.FAVORITES);
     localStorage.removeItem(KEYS.COMPLETED_LESSONS);
     localStorage.removeItem(KEYS.STUDY_TIME);
+    localStorage.removeItem("structura-study-time-by-day");
+    localStorage.removeItem("structura-quiz-scores");
     localStorage.removeItem(KEYS.STREAK_INFO);
     
     // Clear all notes keys

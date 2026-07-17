@@ -1,3 +1,6 @@
+# DEPRECATED: This service is deprecated and will be removed in a future release.
+# Use the consolidated app.services.document_extraction module instead.
+
 from datetime import datetime
 from pathlib import Path
 import time

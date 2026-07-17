@@ -54,6 +54,7 @@ export function DialogTrigger({
     return React.cloneElement(children, {
       onClick: triggerClick,
       ...props,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
   }
 

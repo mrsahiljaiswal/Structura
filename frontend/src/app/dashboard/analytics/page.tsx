@@ -17,24 +17,38 @@ export default function AnalyticsPage() {
   const { courses } = useCourses();
   const completedLessonsCount = coursePersistence.getCompletedLessons().length;
   const totalCourses = courses.length;
-  const totalStudyTimeSec = coursePersistence.getStudyTime();
-  const totalStudyTimeHr = Math.ceil(totalStudyTimeSec / 3600) || 12; // fallback mock
+
+  // Calculate total study time dynamically based on word counts of completed lessons
+  let totalStudyTimeSec = 0;
+  courses.forEach((course) => {
+    course.chapters.forEach((chapter) => {
+      chapter.lessons.forEach((lesson) => {
+        if (coursePersistence.isLessonCompleted(lesson.id)) {
+          const wordCount = lesson.content ? lesson.content.split(/\s+/).length : 0;
+          const readingMinutes = Math.max(1, Math.round(wordCount / 200));
+          totalStudyTimeSec += readingMinutes * 60;
+        }
+      });
+    });
+  });
+  const totalStudyTimeHr = parseFloat((totalStudyTimeSec / 3600).toFixed(1));
   const streak = coursePersistence.getStreak();
 
   const breadcrumbs = [
     { label: "Analytics", href: "/dashboard/analytics" },
   ];
 
-  // Mock days data for weekly study heatmap tracker
-  const weekDays = [
-    { day: "Mon", minutes: 25, active: true },
-    { day: "Tue", minutes: 40, active: true },
-    { day: "Wed", minutes: 15, active: true },
-    { day: "Thu", minutes: 30, active: true },
-    { day: "Fri", minutes: 45, active: true },
-    { day: "Sat", minutes: 0, active: false },
-    { day: "Sun", minutes: totalStudyTimeSec > 0 ? Math.ceil(totalStudyTimeSec / 60) : 10, active: totalStudyTimeSec > 0 },
-  ];
+  // Fetch actual per-day study minutes from localStorage
+  const byDay = coursePersistence.getStudyTimeByDay();
+  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+    const seconds = byDay[day] || 0;
+    const minutes = Math.round(seconds / 60);
+    return {
+      day,
+      minutes,
+      active: minutes > 0,
+    };
+  });
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>

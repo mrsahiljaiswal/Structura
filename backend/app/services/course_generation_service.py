@@ -1,4 +1,8 @@
-"""AI Course Generation service using the Groq API.
+"""
+DEPRECATED: This service is deprecated and will be removed in a future release.
+Use the consolidated app.pipeline.orchestrator module instead.
+
+AI Course Generation service using the Groq API.
 
 This service accepts an ExtractedDocument (with semantic chunks) and
 produces a structured course JSON according to the requested schema.

@@ -6,9 +6,11 @@ in the main API router.
 
 from fastapi import APIRouter
 
-from app.api.v1 import documents
+from app.api.v1 import documents, courses, lessons
 
 v1_router = APIRouter()
 
 # Include all v1 routers
 v1_router.include_router(documents.router, prefix="")
+v1_router.include_router(courses.router, prefix="")
+v1_router.include_router(lessons.router, prefix="")

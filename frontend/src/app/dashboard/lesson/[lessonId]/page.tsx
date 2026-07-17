@@ -59,33 +59,35 @@ export default function LessonPage() {
     enabled: !!lessonId,
   });
 
+  // Fetch lesson practice quiz questions
+  const { data: quizData, isLoading: isQuizLoading } = useQuery({
+    queryKey: ["lesson-quiz", lessonId],
+    queryFn: async () => {
+      const res = await api.get(`/api/v1/lessons/${lessonId}/quiz`);
+      return res.data;
+    },
+    enabled: !!lessonId && !isLoading && !!lesson,
+  });
+
   // 2. Scan all cached courses to locate which course owns this lesson
   const { courses } = useCourses();
   const activeCourse = courses.find((c) =>
     c.chapters.some((ch) => ch.lessons.some((l) => l.id === lessonId))
   );
 
-  // Track study time locally (tick every second while reading)
-  useEffect(() => {
-    if (!lessonId) return;
-    const interval = setInterval(() => {
-      setReadTimeSec((prev) => prev + 1);
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-      // Save study time on unmount or lesson shift
-      if (readTimeSec > 0) {
-        coursePersistence.addStudyTime(readTimeSec);
-      }
-    };
-  }, [lessonId, readTimeSec]);
-
   // Handle marking complete
   const markComplete = async () => {
     if (!lessonId) return;
     setSaving(true);
     try {
+      // Calculate lesson word count and estimate reading time (200 WPM)
+      const wordCount = lesson?.content ? lesson.content.split(/\s+/).length : 0;
+      const readingMinutes = Math.max(1, Math.round(wordCount / 200));
+      const readingSeconds = readingMinutes * 60;
+
+      // Add actual lesson reading time to persistent logs
+      coursePersistence.addStudyTime(readingSeconds);
+
       // call backend patch
       await api.patch(`/api/v1/lessons/${lessonId}/complete`);
       // Update client cache
@@ -271,7 +273,20 @@ export default function LessonPage() {
 
         {/* Interactive Practice Quiz */}
         <section>
-          <PracticeQuiz lessonTitle={lesson.title} />
+          {isQuizLoading ? (
+            <div className="space-y-4 rounded-2xl border border-border/20 p-6 animate-pulse">
+              <Skeleton className="h-5 w-1/3 rounded bg-zinc-800" />
+              <Skeleton className="h-4 w-full rounded bg-zinc-800" />
+              <Skeleton className="h-10 w-full rounded-xl bg-zinc-800" />
+              <Skeleton className="h-10 w-full rounded-xl bg-zinc-800" />
+            </div>
+          ) : (
+            quizData?.questions && quizData.questions.length > 0 ? (
+              <PracticeQuiz lessonTitle={lesson.title} lessonId={lessonId} questions={quizData.questions} />
+            ) : (
+              <p className="text-zinc-500 italic">No quiz questions generated for this lesson.</p>
+            )
+          )}
         </section>
 
         {/* Page Footer Navigation Buttons */}

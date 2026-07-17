@@ -57,6 +57,7 @@ class Lesson(Base):
     examples = Column(JSONB, nullable=True)
     key_takeaways = Column(JSONB, nullable=True)
     summary = Column(Text, nullable=True)
+    is_completed = Column(Integer, nullable=False, default=0)
     position = Column(Integer, nullable=False, default=0)
 
     chapter = relationship("Chapter", back_populates="lessons")

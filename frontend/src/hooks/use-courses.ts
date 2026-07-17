@@ -12,6 +12,10 @@ export interface Lesson {
   id: string;
   title: string;
   position: number;
+  content?: string;
+  summary?: string;
+  examples?: any[];
+  key_takeaways?: any[];
 }
 
 export interface Chapter {

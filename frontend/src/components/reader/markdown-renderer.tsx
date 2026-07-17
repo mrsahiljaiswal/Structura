@@ -28,9 +28,6 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
     // Helper to render inline formatting (bold, italic, inline code)
     const renderInline = (str: string): React.ReactNode[] => {
-      const parts: React.ReactNode[] = [];
-      let index = 0;
-
       // Regex matching bold (**), italic (*), and inline code (`)
       const regex = /(\*\*.*?\*\*|\*.*?\*|`.*?`)/g;
       const matches = str.split(regex);
