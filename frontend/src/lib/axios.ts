@@ -16,10 +16,10 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Example: attach an auth token from wherever you store it (cookies,
-  // a store, etc). Left as a no-op placeholder.
-  // const token = getAuthToken();
-  // if (token) config.headers.Authorization = `Bearer ${token}`;
+  // Automatically attach Clerk logged-in user ID as custom header
+  if (typeof window !== "undefined" && (window as any).Clerk?.user?.id) {
+    config.headers["X-User-Id"] = (window as any).Clerk.user.id;
+  }
   return config;
 });
 

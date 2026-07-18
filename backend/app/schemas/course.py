@@ -36,3 +36,18 @@ class CourseOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserProgressSchema(BaseModel):
+    user_id: str
+    pinned_courses: list = []
+    favorite_courses: list = []
+    completed_lessons: list = []
+    study_time_total: int = 0
+    study_time_by_day: dict = {}
+    quiz_scores: dict = {}
+    lesson_notes: dict = {}
+
+    class Config:
+        from_attributes = True
+

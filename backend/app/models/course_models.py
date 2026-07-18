@@ -61,3 +61,17 @@ class Lesson(Base):
     position = Column(Integer, nullable=False, default=0)
 
     chapter = relationship("Chapter", back_populates="lessons")
+
+
+class UserProgress(Base):
+    __tablename__ = "user_progress"
+
+    user_id = Column(String(255), primary key=True)
+    pinned_courses = Column(JSONB, nullable=False, default=list)
+    favorite_courses = Column(JSONB, nullable=False, default=list)
+    completed_lessons = Column(JSONB, nullable=False, default=list)
+    study_time_total = Column(Integer, nullable=False, default=0)
+    study_time_by_day = Column(JSONB, nullable=False, default=dict)
+    quiz_scores = Column(JSONB, nullable=False, default=dict)
+    lesson_notes = Column(JSONB, nullable=False, default=dict)
+

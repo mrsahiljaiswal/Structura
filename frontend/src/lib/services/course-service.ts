@@ -1,101 +1,133 @@
 /**
- * Purpose: Local Storage Course Persistence Service for Structura
- * Manages course lists, favorites, pins, lesson completions, and study time logs.
- * Provides a clean interface that can be easily swapped for database REST APIs later.
+ * Purpose: Backend-Synced Course Persistence Service for Structura
+ * Manages course lists, favorites, pins, lesson completions, and study time logs
+ * by synchronizing dynamically with the FastAPI backend database.
  */
 
-const KEYS = {
-  COURSE_IDS: "structura-course-ids",
-  PINNED_IDS: "structura-pinned-courses",
-  FAVORITES: "structura-favorites",
-  COMPLETED_LESSONS: "structura-completed-lessons",
-  STUDY_TIME: "structura-study-time",
-  STREAK_INFO: "structura-streak-info",
-  NOTES_PREFIX: "structura-notes-",
-};
+import api from "@/lib/axios";
 
 interface StreakInfo {
   count: number;
   lastDate: string | null;
 }
 
+interface UserProgress {
+  pinned_courses: { id: string; title: string }[];
+  favorite_courses: string[];
+  completed_lessons: string[];
+  study_time_total: number;
+  study_time_by_day: Record<string, number>;
+  quiz_scores: Record<string, number>;
+  lesson_notes: Record<string, string>;
+  streak_count?: number;
+  streak_last_date?: string | null;
+}
+
 class CoursePersistenceService {
-  // Course ID Registry
-  getCourseIds(): string[] {
-    if (typeof window === "undefined") return [];
-    const saved = localStorage.getItem(KEYS.COURSE_IDS);
-    if (!saved) return [];
+  private progress: UserProgress = {
+    pinned_courses: [],
+    favorite_courses: [],
+    completed_lessons: [],
+    study_time_total: 0,
+    study_time_by_day: {},
+    quiz_scores: {},
+    lesson_notes: {},
+    streak_count: 0,
+    streak_last_date: null,
+  };
+  private isLoaded = false;
+  private loadingPromise: Promise<void> | null = null;
+
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.loadFromServer();
+    }
+  }
+
+  async loadFromServer(): Promise<void> {
+    if (typeof window === "undefined") return;
+    if (this.loadingPromise) return this.loadingPromise;
+
+    this.loadingPromise = (async () => {
+      try {
+        const res = await api.get("/api/v1/user/progress");
+        this.progress = {
+          pinned_courses: res.data.pinned_courses || [],
+          favorite_courses: res.data.favorite_courses || [],
+          completed_lessons: res.data.completed_lessons || [],
+          study_time_total: res.data.study_time_total || 0,
+          study_time_by_day: res.data.study_time_by_day || {},
+          quiz_scores: res.data.quiz_scores || {},
+          lesson_notes: res.data.lesson_notes || {},
+          streak_count: res.data.streak_count || 0,
+          streak_last_date: res.data.streak_last_date || null,
+        };
+        this.isLoaded = true;
+        window.dispatchEvent(new Event("storage"));
+      } catch (err) {
+        console.error("Failed to load user progress from server", err);
+      } finally {
+        this.loadingPromise = null;
+      }
+    })();
+
+    return this.loadingPromise;
+  }
+
+  async saveToServer(): Promise<void> {
+    if (typeof window === "undefined") return;
     try {
-      return JSON.parse(saved);
-    } catch {
-      return [];
+      const payload = {
+        user_id: (window as any).Clerk?.user?.id || "anonymous",
+        pinned_courses: this.progress.pinned_courses,
+        favorite_courses: this.progress.favorite_courses,
+        completed_lessons: this.progress.completed_lessons,
+        study_time_total: this.progress.study_time_total,
+        study_time_by_day: this.progress.study_time_by_day,
+        quiz_scores: this.progress.quiz_scores,
+        lesson_notes: this.progress.lesson_notes,
+        streak_count: this.progress.streak_count || 0,
+        streak_last_date: this.progress.streak_last_date || null,
+      };
+      await api.post("/api/v1/user/progress", payload);
+    } catch (err) {
+      console.error("Failed to save user progress to server", err);
     }
   }
 
-  addCourseId(id: string) {
-    if (typeof window === "undefined") return;
-    const ids = this.getCourseIds();
-    if (!ids.includes(id)) {
-      ids.push(id);
-      localStorage.setItem(KEYS.COURSE_IDS, JSON.stringify(ids));
-      // Dispatch storage event to trigger sidebar updates
-      window.dispatchEvent(new Event("storage"));
-    }
+  // Course ID Registry (stubs since list is fully queryable from API)
+  getCourseIds(): string[] {
+    return [];
   }
-
-  removeCourseId(id: string) {
-    if (typeof window === "undefined") return;
-    const ids = this.getCourseIds().filter((currId) => currId !== id);
-    localStorage.setItem(KEYS.COURSE_IDS, JSON.stringify(ids));
-    
-    // Cleanup pins and favorites
-    this.unpinCourse(id);
-    this.unfavoriteCourse(id);
-    window.dispatchEvent(new Event("storage"));
-  }
+  addCourseId(id: string) {}
+  removeCourseId(id: string) {}
 
   // Pinned / Favorite Courses
   getPinnedCourses(): { id: string; title: string }[] {
-    if (typeof window === "undefined") return [];
-    const saved = localStorage.getItem(KEYS.PINNED_IDS);
-    if (!saved) return [];
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return [];
-    }
+    return this.progress.pinned_courses || [];
   }
 
-  pinCourse(id: string, title: string) {
-    if (typeof window === "undefined") return;
+  async pinCourse(id: string, title: string) {
     const pinned = this.getPinnedCourses();
     if (!pinned.some((p) => p.id === id)) {
       pinned.push({ id, title });
-      localStorage.setItem(KEYS.PINNED_IDS, JSON.stringify(pinned));
+      this.progress.pinned_courses = pinned;
+      await this.saveToServer();
       window.dispatchEvent(new Event("storage"));
     }
   }
 
-  unpinCourse(id: string) {
-    if (typeof window === "undefined") return;
-    const pinned = this.getPinnedCourses().filter((p) => p.id !== id);
-    localStorage.setItem(KEYS.PINNED_IDS, JSON.stringify(pinned));
+  async unpinCourse(id: string) {
+    this.progress.pinned_courses = this.getPinnedCourses().filter((p) => p.id !== id);
+    await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }
 
   getFavorites(): string[] {
-    if (typeof window === "undefined") return [];
-    const saved = localStorage.getItem(KEYS.FAVORITES);
-    if (!saved) return [];
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return [];
-    }
+    return this.progress.favorite_courses || [];
   }
 
-  toggleFavorite(id: string) {
-    if (typeof window === "undefined") return;
+  async toggleFavorite(id: string) {
     const favs = this.getFavorites();
     const idx = favs.indexOf(id);
     if (idx === -1) {
@@ -103,31 +135,23 @@ class CoursePersistenceService {
     } else {
       favs.splice(idx, 1);
     }
-    localStorage.setItem(KEYS.FAVORITES, JSON.stringify(favs));
+    this.progress.favorite_courses = favs;
+    await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }
 
-  unfavoriteCourse(id: string) {
-    if (typeof window === "undefined") return;
-    const favs = this.getFavorites().filter((f) => f !== id);
-    localStorage.setItem(KEYS.FAVORITES, JSON.stringify(favs));
+  async unfavoriteCourse(id: string) {
+    this.progress.favorite_courses = this.getFavorites().filter((f) => f !== id);
+    await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }
 
   // Lesson completions registry
   getCompletedLessons(): string[] {
-    if (typeof window === "undefined") return [];
-    const saved = localStorage.getItem(KEYS.COMPLETED_LESSONS);
-    if (!saved) return [];
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return [];
-    }
+    return this.progress.completed_lessons || [];
   }
 
-  toggleLessonComplete(lessonId: string) {
-    if (typeof window === "undefined") return;
+  async toggleLessonComplete(lessonId: string) {
     const completed = this.getCompletedLessons();
     const idx = completed.indexOf(lessonId);
     if (idx === -1) {
@@ -135,7 +159,8 @@ class CoursePersistenceService {
     } else {
       completed.splice(idx, 1);
     }
-    localStorage.setItem(KEYS.COMPLETED_LESSONS, JSON.stringify(completed));
+    this.progress.completed_lessons = completed;
+    await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }
 
@@ -145,98 +170,94 @@ class CoursePersistenceService {
 
   // Study timers
   getStudyTime(): number {
-    if (typeof window === "undefined") return 0;
-    const time = localStorage.getItem(KEYS.STUDY_TIME);
-    return time ? parseInt(time, 10) : 0;
+    return this.progress.study_time_total || 0;
   }
 
   getStudyTimeByDay(): Record<string, number> {
-    if (typeof window === "undefined") return {};
-    const saved = localStorage.getItem("structura-study-time-by-day");
-    if (!saved) return {};
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return {};
-    }
+    return this.progress.study_time_by_day || {};
   }
 
-  addStudyTime(seconds: number) {
-    if (typeof window === "undefined") return;
-    const current = this.getStudyTime();
-    localStorage.setItem(KEYS.STUDY_TIME, (current + seconds).toString());
+  async addStudyTime(seconds: number) {
+    this.progress.study_time_total = (this.progress.study_time_total || 0) + seconds;
     
-    // Log per-day study time
-    const day = new Date().toLocaleDateString("en-US", { weekday: "short" }); // e.g. "Mon", "Tue"
+    const day = new Date().toLocaleDateString("en-US", { weekday: "short" });
     const byDay = this.getStudyTimeByDay();
     byDay[day] = (byDay[day] || 0) + seconds;
-    localStorage.setItem("structura-study-time-by-day", JSON.stringify(byDay));
+    this.progress.study_time_by_day = byDay;
 
-    this.updateStreak();
+    await this.updateStreak();
   }
 
   // Streak calculations
   getStreak(): StreakInfo {
-    if (typeof window === "undefined") return { count: 0, lastDate: null };
-    const saved = localStorage.getItem(KEYS.STREAK_INFO);
-    if (!saved) return { count: 0, lastDate: null };
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return { count: 0, lastDate: null };
-    }
+    return {
+      count: this.progress.streak_count || 0,
+      lastDate: this.progress.streak_last_date || null,
+    };
   }
 
-  updateStreak() {
-    if (typeof window === "undefined") return;
+  async updateStreak() {
     const today = new Date().toDateString();
-    const streak = this.getStreak();
+    const currentStreak = this.getStreak();
 
-    if (streak.lastDate === today) return; // Streak already incremented today
+    if (currentStreak.lastDate === today) {
+      await this.saveToServer();
+      window.dispatchEvent(new Event("storage"));
+      return;
+    }
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toDateString();
 
-    if (streak.lastDate === yesterdayStr) {
-      streak.count += 1;
+    if (currentStreak.lastDate === yesterdayStr) {
+      this.progress.streak_count = (this.progress.streak_count || 0) + 1;
     } else {
-      streak.count = 1; // Streak broken, restart
+      this.progress.streak_count = 1;
     }
 
-    streak.lastDate = today;
-    localStorage.setItem(KEYS.STREAK_INFO, JSON.stringify(streak));
+    this.progress.streak_last_date = today;
+    await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }
 
   // Markdown Notes panel
   getNotes(lessonId: string): string {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem(`${KEYS.NOTES_PREFIX}${lessonId}`) || "";
+    return this.progress.lesson_notes[lessonId] || "";
   }
 
-  saveNotes(lessonId: string, notes: string) {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(`${KEYS.NOTES_PREFIX}${lessonId}`, notes);
+  async saveNotes(lessonId: string, notes: string) {
+    this.progress.lesson_notes[lessonId] = notes;
+    await this.saveToServer();
+  }
+
+  // Master cache reset
+  async clearAllData() {
+    this.progress = {
+      pinned_courses: [],
+      favorite_courses: [],
+      completed_lessons: [],
+      study_time_total: 0,
+      study_time_by_day: {},
+      quiz_scores: {},
+      lesson_notes: {},
+      streak_count: 0,
+      streak_last_date: null,
+    };
+    await this.saveToServer();
+    window.dispatchEvent(new Event("storage"));
   }
 
   // Quiz Scores
   getQuizScores(): Record<string, number> {
-    if (typeof window === "undefined") return {};
-    const saved = localStorage.getItem("structura-quiz-scores");
-    if (!saved) return {};
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return {};
-    }
+    return this.progress.quiz_scores || {};
   }
 
-  saveQuizScore(lessonId: string, scorePercent: number) {
-    if (typeof window === "undefined") return;
+  async saveQuizScore(lessonId: string, scorePercent: number) {
     const scores = this.getQuizScores();
     scores[lessonId] = scorePercent;
-    localStorage.setItem("structura-quiz-scores", JSON.stringify(scores));
+    this.progress.quiz_scores = scores;
+    await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }
 
@@ -245,31 +266,6 @@ class CoursePersistenceService {
     if (scores.length === 0) return 0;
     const sum = scores.reduce((a, b) => a + b, 0);
     return Math.round(sum / scores.length);
-  }
-
-  // Master cache reset
-  clearAllData() {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(KEYS.COURSE_IDS);
-    localStorage.removeItem(KEYS.PINNED_IDS);
-    localStorage.removeItem(KEYS.FAVORITES);
-    localStorage.removeItem(KEYS.COMPLETED_LESSONS);
-    localStorage.removeItem(KEYS.STUDY_TIME);
-    localStorage.removeItem("structura-study-time-by-day");
-    localStorage.removeItem("structura-quiz-scores");
-    localStorage.removeItem(KEYS.STREAK_INFO);
-    
-    // Clear all notes keys
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(KEYS.NOTES_PREFIX)) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach((k) => localStorage.removeItem(k));
-    
-    window.dispatchEvent(new Event("storage"));
   }
 }
 

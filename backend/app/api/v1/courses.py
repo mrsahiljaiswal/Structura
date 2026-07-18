@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -9,6 +10,45 @@ from app.models.course_models import Course as CourseModel, Chapter as ChapterMo
 from app.schemas.course import CourseOut, ChapterOut, LessonOut
 
 router = APIRouter()
+
+
+@router.get("/courses", response_model=List[CourseOut])
+async def list_courses(db: AsyncSession = Depends(get_db)):
+    stmt = (
+        select(CourseModel)
+        .options(joinedload(CourseModel.chapters).joinedload(ChapterModel.lessons))
+    )
+    res = await db.execute(stmt)
+    courses = res.unique().scalars().all()
+
+    out_courses = []
+    for course in courses:
+        chapters = []
+        sorted_chapters = sorted(course.chapters, key=lambda c: c.position or 0)
+        for ch in sorted_chapters:
+            lessons = []
+            sorted_lessons = sorted(ch.lessons, key=lambda l: l.position or 0)
+            for l in sorted_lessons:
+                lessons.append(LessonOut(
+                    id=l.id,
+                    title=l.title,
+                    content=l.content,
+                    examples=l.examples,
+                    key_takeaways=l.key_takeaways,
+                    summary=l.summary,
+                    position=l.position,
+                ))
+            chapters.append(ChapterOut(id=ch.id, title=ch.title, position=ch.position, lessons=lessons))
+        out_courses.append(CourseOut(
+            id=course.id,
+            title=course.title,
+            description=course.description,
+            difficulty=course.difficulty,
+            estimated_time=course.estimated_time,
+            chapters=chapters,
+        ))
+
+    return out_courses
 
 
 @router.get("/courses/{course_id}", response_model=CourseOut)
