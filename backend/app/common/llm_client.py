@@ -9,6 +9,7 @@ import requests
 
 from .exceptions import LLMError
 
+DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
 DEFAULT_ANTHROPIC_MODEL = "claude-3-5-sonnet-20240620"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
@@ -44,7 +45,7 @@ class LLMClient:
         # Priority 1: Google Gemini API
         if self.gemini_key:
             self.provider = "gemini"
-            self.model = model or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+            self.model = model or os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
             self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.gemini_key}"
         elif self.anthropic_key:
             self.provider = "anthropic"
