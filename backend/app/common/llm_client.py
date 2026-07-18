@@ -41,13 +41,11 @@ class LLMClient:
         self.groq_key = os.environ.get("GROQ_API_KEY")
         self.openai_key = os.environ.get("OPENAI_API_KEY")
 
-        if self.gemini_key:
+        # Prefer Gemini if a standard Google AI Studio key (AIzaSy...) is provided, or if no Groq key exists
+        if self.gemini_key and (self.gemini_key.startswith("AIzaSy") or not self.groq_key):
             self.provider = "gemini"
             self.model = model or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
-            self.api_url = os.environ.get(
-                "GEMINI_API_URL",
-                "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            )
+            self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.gemini_key}"
         elif self.anthropic_key:
             self.provider = "anthropic"
             self.model = model or os.environ.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
@@ -97,13 +95,73 @@ class LLMClient:
                 block.text for block in response.content if getattr(block, "type", None) == "text"
             )
 
-        elif self.provider in ("groq", "openai", "gemini"):
-            if self.provider == "gemini":
-                key = self.gemini_key
-            elif self.provider == "groq":
-                key = self.groq_key
-            else:
-                key = self.openai_key
+        elif self.provider == "gemini":
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.gemini_key}"
+            payload = {
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [{"text": f"{sys_prompt}\n\n{user}"}],
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.2,
+                    "maxOutputTokens": self.max_tokens,
+                },
+            }
+            headers = {"Content-Type": "application/json"}
+
+            import time
+
+            max_attempts = 10
+            for attempt in range(max_attempts):
+                try:
+                    resp = requests.post(url, headers=headers, json=payload, timeout=60)
+                    if resp.status_code == 429:
+                        if attempt == max_attempts - 1:
+                            raise LLMError(
+                                f"GEMINI API rate limit (429) persisted after {max_attempts} attempts. "
+                                f"Details: {resp.text}"
+                            )
+
+                        sleep_sec = 2.0 * (attempt + 1)
+                        try:
+                            match = re.search(r"try again in ([0-9\.]+)s", resp.text)
+                            if match:
+                                sleep_sec = float(match.group(1)) + 0.5
+                            elif resp.headers.get("retry-after"):
+                                sleep_sec = float(resp.headers.get("retry-after")) + 0.5
+                        except Exception:
+                            pass
+
+                        logger.warning(
+                            f"Rate limit (429) hit from GEMINI. "
+                            f"Sleeping {sleep_sec:.2f}s before retry (attempt {attempt+1}/{max_attempts})..."
+                        )
+                        time.sleep(sleep_sec)
+                        continue
+
+                    if resp.status_code != 200:
+                        raise LLMError(f"GEMINI API error {resp.status_code}: {resp.text}")
+
+                    res_data = resp.json()
+                    candidates = res_data.get("candidates", [])
+                    if not candidates:
+                        raise LLMError(f"GEMINI returned no candidates: {resp.text}")
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if not parts:
+                        raise LLMError(f"GEMINI returned empty parts: {resp.text}")
+                    return parts[0].get("text", "")
+                except LLMError:
+                    raise
+                except Exception as e:
+                    if attempt < max_attempts - 1:
+                        time.sleep(2.0 * (attempt + 1))
+                        continue
+                    raise LLMError(f"HTTP call to GEMINI failed: {e}") from e
+
+        elif self.provider in ("groq", "openai"):
+            key = self.groq_key if self.provider == "groq" else self.openai_key
             headers = {
                 "Authorization": f"Bearer {key}",
                 "Content-Type": "application/json"
