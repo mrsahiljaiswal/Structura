@@ -12,6 +12,7 @@ from .exceptions import LLMError
 
 DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
+DEFAULT_OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,7 @@ FakeResponder = Callable[[str, str], str]
 class LLMClient:
     """
     Resilient multi-provider LLM client for Structura.
-    Primary: Google Gemini API (gemini-1.5-flash)
-    Fallback: Groq API (llama-3.1-8b-instant) if Gemini daily/rate limit quotas are hit.
+    Supports OpenRouter, Google Gemini, and Groq with automatic failovers.
     """
 
     def __init__(
@@ -34,8 +34,11 @@ class LLMClient:
         self.max_tokens = max_tokens
         self._fake_responder = fake_responder
 
+        self.openrouter_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_KEY")
+        self.openrouter_model = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL)
+
         self.gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_KEY")
-        self.gemini_model = model or os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+        self.gemini_model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
 
         self.groq_key = os.environ.get("GROQ_API_KEY")
         self.groq_model = os.environ.get("GROQ_MODEL", DEFAULT_GROQ_MODEL)
@@ -48,7 +51,14 @@ class LLMClient:
         if force_json_hint:
             sys_prompt += "\n\nCRITICAL: Respond strictly with valid JSON only. Do not include markdown or prose commentary."
 
-        # 1. Try Primary: Google Gemini (Requires AI Studio key starting with AIzaSy)
+        # 1. Primary Priority: OpenRouter if OPENROUTER_API_KEY is present
+        if self.openrouter_key:
+            try:
+                return self._call_openrouter(sys_prompt, user)
+            except LLMError as err:
+                logger.warning(f"OpenRouter call failed: {err}. Trying fallbacks...")
+
+        # 2. Try Google Gemini (Requires AI Studio key starting with AIzaSy)
         if self.gemini_key and self.gemini_key.startswith("AIzaSy"):
             try:
                 return self._call_gemini(sys_prompt, user)
@@ -61,11 +71,57 @@ class LLMClient:
                     return self._call_groq(sys_prompt, user)
                 raise gemini_err
 
-        # 2. Fallback: Groq
+        # 3. Fallback: Groq
         if self.groq_key:
             return self._call_groq(sys_prompt, user)
 
-        raise LLMError("No active LLM API keys found (neither GEMINI_API_KEY nor GROQ_API_KEY).")
+        raise LLMError("No active LLM API keys found (neither OPENROUTER_API_KEY, GEMINI_API_KEY, nor GROQ_API_KEY).")
+
+    def _call_openrouter(self, system: str, user: str) -> str:
+        url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.openrouter_key}",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Structura AI",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.openrouter_model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "temperature": 0.2,
+            "max_tokens": self.max_tokens,
+        }
+
+        max_attempts = 4
+        for attempt in range(max_attempts):
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=60)
+                if resp.status_code == 429:
+                    if attempt == max_attempts - 1:
+                        raise LLMError(f"OpenRouter 429 rate limit reached ({resp.text[:200]})")
+                    sleep_sec = 2.0 * (attempt + 1)
+                    time.sleep(sleep_sec)
+                    continue
+
+                if resp.status_code != 200:
+                    raise LLMError(f"OpenRouter API error {resp.status_code}: {resp.text[:300]}")
+
+                res_data = resp.json()
+                choices = res_data.get("choices", [])
+                if not choices:
+                    raise LLMError(f"OpenRouter returned empty choices: {resp.text[:200]}")
+                return choices[0]["message"]["content"]
+            except LLMError:
+                raise
+            except Exception as e:
+                if attempt == max_attempts - 1:
+                    raise LLMError(f"OpenRouter call failed: {e}") from e
+                time.sleep(2.0 * (attempt + 1))
+
+        raise LLMError("OpenRouter call failed.")
 
     def _call_gemini(self, system: str, user: str) -> str:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_key}"
