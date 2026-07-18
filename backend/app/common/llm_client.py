@@ -41,8 +41,8 @@ class LLMClient:
         self.groq_key = os.environ.get("GROQ_API_KEY")
         self.openai_key = os.environ.get("OPENAI_API_KEY")
 
-        # Prefer Gemini if a standard Google AI Studio key (AIzaSy...) is provided, or if no Groq key exists
-        if self.gemini_key and (self.gemini_key.startswith("AIzaSy") or not self.groq_key):
+        # Priority 1: Google Gemini API
+        if self.gemini_key:
             self.provider = "gemini"
             self.model = model or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
             self.api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.gemini_key}"
