@@ -10,7 +10,7 @@ import requests
 from .exceptions import LLMError
 
 DEFAULT_ANTHROPIC_MODEL = "claude-3-5-sonnet-20240620"
-DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
 logger = logging.getLogger(__name__)
@@ -111,15 +111,16 @@ class LLMClient:
                 try:
                     resp = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
                     if resp.status_code == 429:
-                        # Extract Retry-After header or fallback to exponential backoff
-                        retry_after = resp.headers.get("retry-after")
-                        if retry_after:
-                            try:
-                                sleep_sec = float(retry_after)
-                            except ValueError:
-                                sleep_sec = 2.5 * (attempt + 1)
-                        else:
-                            sleep_sec = 2.5 * (attempt + 1)
+                        # Extract exact retry seconds from Groq error message or header
+                        sleep_sec = 1.5 * (attempt + 1)
+                        try:
+                            match = re.search(r"try again in ([0-9\.]+)s", resp.text)
+                            if match:
+                                sleep_sec = float(match.group(1)) + 0.2
+                            elif resp.headers.get("retry-after"):
+                                sleep_sec = float(resp.headers.get("retry-after"))
+                        except Exception:
+                            pass
                         
                         logger.warning(
                             f"Rate limit (429) hit from {self.provider.upper()}. "
