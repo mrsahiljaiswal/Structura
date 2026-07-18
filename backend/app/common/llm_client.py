@@ -48,8 +48,8 @@ class LLMClient:
         if force_json_hint:
             sys_prompt += "\n\nCRITICAL: Respond strictly with valid JSON only. Do not include markdown or prose commentary."
 
-        # 1. Try Primary: Google Gemini
-        if self.gemini_key:
+        # 1. Try Primary: Google Gemini (Requires AI Studio key starting with AIzaSy)
+        if self.gemini_key and self.gemini_key.startswith("AIzaSy"):
             try:
                 return self._call_gemini(sys_prompt, user)
             except LLMError as gemini_err:
