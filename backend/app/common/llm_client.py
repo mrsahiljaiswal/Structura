@@ -119,22 +119,28 @@ class LLMClient:
             }
 
             import time
-            max_attempts = 6
+            max_attempts = 10
             for attempt in range(max_attempts):
                 try:
                     resp = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
                     if resp.status_code == 429:
-                        # Extract exact retry seconds from Groq error message or header
-                        sleep_sec = 1.5 * (attempt + 1)
+                        if attempt == max_attempts - 1:
+                            raise LLMError(
+                                f"{self.provider.upper()} API rate limit (429) persisted after {max_attempts} attempts. "
+                                f"Details: {resp.text}"
+                            )
+
+                        # Extract exact retry seconds from error message or header
+                        sleep_sec = 2.0 * (attempt + 1)
                         try:
                             match = re.search(r"try again in ([0-9\.]+)s", resp.text)
                             if match:
-                                sleep_sec = float(match.group(1)) + 0.2
+                                sleep_sec = float(match.group(1)) + 0.5
                             elif resp.headers.get("retry-after"):
-                                sleep_sec = float(resp.headers.get("retry-after"))
+                                sleep_sec = float(resp.headers.get("retry-after")) + 0.5
                         except Exception:
                             pass
-                        
+
                         logger.warning(
                             f"Rate limit (429) hit from {self.provider.upper()}. "
                             f"Sleeping {sleep_sec:.2f}s before retry (attempt {attempt+1}/{max_attempts})..."
