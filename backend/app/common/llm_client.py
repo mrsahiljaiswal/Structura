@@ -36,11 +36,19 @@ class LLMClient:
         self._client = None
 
         # Resolve provider and credentials
+        self.gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_KEY")
         self.anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
         self.groq_key = os.environ.get("GROQ_API_KEY")
         self.openai_key = os.environ.get("OPENAI_API_KEY")
 
-        if self.anthropic_key:
+        if self.gemini_key:
+            self.provider = "gemini"
+            self.model = model or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+            self.api_url = os.environ.get(
+                "GEMINI_API_URL",
+                "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+            )
+        elif self.anthropic_key:
             self.provider = "anthropic"
             self.model = model or os.environ.get("ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL)
         elif self.groq_key:
@@ -89,8 +97,13 @@ class LLMClient:
                 block.text for block in response.content if getattr(block, "type", None) == "text"
             )
 
-        elif self.provider in ("groq", "openai"):
-            key = self.groq_key if self.provider == "groq" else self.openai_key
+        elif self.provider in ("groq", "openai", "gemini"):
+            if self.provider == "gemini":
+                key = self.gemini_key
+            elif self.provider == "groq":
+                key = self.groq_key
+            else:
+                key = self.openai_key
             headers = {
                 "Authorization": f"Bearer {key}",
                 "Content-Type": "application/json"
