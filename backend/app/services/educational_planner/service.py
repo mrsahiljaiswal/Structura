@@ -20,7 +20,9 @@ structure. You DO NOT write lesson content - that is a later stage. You only pla
 Preserve the given order - do not move a concept before its prerequisites. Each lesson should
 cover one or a small handful of closely related learning units.
 
-Respond with ONLY a JSON object, no prose, no markdown fences:
+CRITICAL: Respond ONLY with a single valid raw JSON object matching the schema below. Do NOT output markdown text, bullet points (* Module 1: ...), or prose commentary.
+
+Example output format:
 {
   "course_title": "...",
   "description": "1-2 sentence course description",

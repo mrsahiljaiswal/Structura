@@ -113,9 +113,13 @@ export function PipelineTimeline({
       {/* Timeline Progression Line */}
       <div className="relative border-l border-border/40 pl-6 ml-3.5 space-y-6">
         {pipelineSteps.map((step) => {
-          const isFinished = processingComplete || currentStepId > step.id || (step.id === 1 && uploadComplete);
+          const isFinished =
+            processingComplete ||
+            (currentStepId > step.id && !hasError) ||
+            (step.id === 1 && uploadComplete && currentStepId > 1);
+          const isErrorStep = hasError && currentStepId === step.id;
           const isActive = !processingComplete && !hasError && currentStepId === step.id;
-          const isPending = !isFinished && !isActive;
+          const isPending = !isFinished && !isActive && !isErrorStep;
 
           return (
             <div key={step.id} className="relative transition-all duration-300">
@@ -125,21 +129,28 @@ export function PipelineTimeline({
                   "absolute left-[-38px] top-0 flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-950 border shadow-md",
                   isFinished && "border-emerald-500/30 text-emerald-400 bg-emerald-500/[0.02]",
                   isActive && "border-indigo-500 text-indigo-400 animate-pulse bg-indigo-500/[0.02]",
+                  isErrorStep && "border-red-500/40 text-red-400 bg-red-500/[0.02]",
                   isPending && "border-border/40 text-muted-foreground"
                 )}
               >
                 {isFinished && <CheckCircle className="h-4 w-4" />}
                 {isActive && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isErrorStep && <AlertCircle className="h-4 w-4 text-red-400" />}
                 {isPending && <Circle className="h-2 w-2 fill-current" />}
               </span>
 
               <div className={cn("transition-opacity", isPending && "opacity-50")}>
-                <p className="text-sm font-semibold text-foreground leading-none">
+                <p className={cn("text-sm font-semibold leading-none", isErrorStep ? "text-red-400" : "text-foreground")}>
                   {step.label}
                 </p>
                 {isActive && (
                   <p className="text-xs text-indigo-400/80 font-medium mt-1 animate-pulse">
                     {step.description}...
+                  </p>
+                )}
+                {isErrorStep && (
+                  <p className="text-xs text-red-400/90 font-medium mt-1">
+                    Halted at this step. Please re-try or check API keys.
                   </p>
                 )}
               </div>

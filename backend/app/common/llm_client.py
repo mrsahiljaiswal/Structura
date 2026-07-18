@@ -164,12 +164,54 @@ class LLMClient:
         raw = self._call(system, user)
         return self._parse_json(raw, system, user, retries)
 
-    def _parse_json(self, raw: str, system: str, user: str, retries: int) -> Any:
-        cleaned = re.sub(r"^```(json)?|```$", "", raw.strip(), flags=re.MULTILINE).strip()
+    def _clean_json_string(self, raw: Optional[str]) -> str:
+        if not raw:
+            return ""
+        # Strip Markdown code blocks
+        cleaned = re.sub(r"```(?:json)?", "", raw, flags=re.IGNORECASE)
+        cleaned = re.sub(r"```", "", cleaned).strip()
+
+        # Try to find JSON object {} or array [] bounds
+        start_brace = cleaned.find("{")
+        start_bracket = cleaned.find("[")
+
+        start = -1
+        if start_brace != -1 and start_bracket != -1:
+            start = min(start_brace, start_bracket)
+        elif start_brace != -1:
+            start = start_brace
+        elif start_bracket != -1:
+            start = start_bracket
+
+        if start != -1:
+            end_brace = cleaned.rfind("}")
+            end_bracket = cleaned.rfind("]")
+            end = max(end_brace, end_bracket)
+            if end > start:
+                return cleaned[start : end + 1].strip()
+
+        return cleaned
+
+    def _parse_json(self, raw: Optional[str], system: str, user: str, retries: int) -> Any:
+        if not raw:
+            if retries > 0:
+                hinted_user = (
+                    user
+                    + "\n\nCRITICAL: You MUST respond strictly with a valid, single JSON object. Do not include markdown headers, bullet points, codeblock wrappers, or commentary."
+                )
+                raw = self._call(system, hinted_user)
+                return self._parse_json(raw, system, user, retries - 1)
+            raise LLMError("LLM returned an empty or None response.")
+
+        cleaned = self._clean_json_string(raw)
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError as e:
             if retries > 0:
-                raw = self._call(system, user, force_json_hint=True)
+                hinted_user = (
+                    user
+                    + "\n\nCRITICAL: You MUST respond strictly with a valid, single JSON object. Do not include markdown headers, bullet points, codeblock wrappers, or commentary."
+                )
+                raw = self._call(system, hinted_user)
                 return self._parse_json(raw, system, user, retries - 1)
             raise LLMError(f"Failed to parse LLM JSON response: {e}\nRaw (truncated): {raw[:500]}") from e
