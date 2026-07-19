@@ -68,7 +68,7 @@ export default function SignInPage() {
               ))}
             </div>
             <p className="text-xs italic text-foreground">
-              "Structura turned 500-page engineering manuals into structured, searchable interactive courses in minutes."
+              &quot;Structura turned 500-page engineering manuals into structured, searchable interactive courses in minutes.&quot;
             </p>
             <div className="flex items-center gap-2 pt-1 text-[11px] font-bold text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />

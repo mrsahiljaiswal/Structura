@@ -68,7 +68,7 @@ export default function SignUpPage() {
               ))}
             </div>
             <p className="text-xs italic text-foreground">
-              "The speed and quality of generated flashcards and concept maps is unmatched."
+              &quot;The speed and quality of generated flashcards and concept maps is unmatched.&quot;
             </p>
             <div className="flex items-center gap-2 pt-1 text-[11px] font-bold text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
