@@ -199,7 +199,15 @@ export function CommandPalette({
           // Index Keywords / Topics (from key_takeaways)
           if (lesson.key_takeaways && Array.isArray(lesson.key_takeaways)) {
             lesson.key_takeaways.forEach((takeaway, idx) => {
-              const keywordTitle = typeof takeaway === "string" ? takeaway : (takeaway.title || takeaway.concept || "Key Topic");
+              const itemObj = typeof takeaway === "object" && takeaway !== null ? (takeaway as Record<string, unknown>) : null;
+              const keywordTitle =
+                typeof takeaway === "string"
+                  ? takeaway
+                  : typeof itemObj?.title === "string"
+                    ? itemObj.title
+                    : typeof itemObj?.concept === "string"
+                      ? itemObj.concept
+                      : "Key Topic";
               if (keywordTitle && typeof keywordTitle === "string") {
                 courseSearchItems.push({
                   id: `keyword-${lesson.id}-${idx}`,
