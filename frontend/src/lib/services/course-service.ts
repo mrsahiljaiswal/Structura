@@ -78,7 +78,8 @@ class CoursePersistenceService {
   async saveToServer(): Promise<void> {
     if (typeof window === "undefined") return;
     try {
-      const win = (window as unknown as Record<string, { Clerk?: { user?: { id?: string } } }>);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const win = window as any;
       const payload = {
         user_id: win?.Clerk?.user?.id || "anonymous",
         pinned_courses: this.progress.pinned_courses,
