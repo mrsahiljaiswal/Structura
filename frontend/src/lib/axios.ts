@@ -18,8 +18,9 @@ export const api = axios.create({
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (typeof window !== "undefined") {
     // 1. Extract Clerk logged-in user ID
-    const win = window as unknown as Record<string, { Clerk?: { user?: { id?: string } } }>;
-    let clerkUserId = win?.Clerk?.user?.id;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    let clerkUserId: string | undefined = win?.Clerk?.user?.id;
 
     // 2. Local storage cache fallback for user switching
     if (!clerkUserId) {
