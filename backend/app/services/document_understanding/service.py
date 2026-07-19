@@ -37,10 +37,10 @@ Respond with ONLY a JSON object matching this exact shape, no prose, no markdown
   "confidence": float between 0 and 1
 }"""
 
-FRONT_MATTER_CHAR_LIMIT = 6000
-BACK_MATTER_CHAR_LIMIT = 3000
-FRONT_MATTER_PAGE_SAMPLE = 15
-BACK_MATTER_PAGE_SAMPLE = 10
+FRONT_MATTER_CHAR_LIMIT = 1500
+BACK_MATTER_CHAR_LIMIT = 800
+FRONT_MATTER_PAGE_SAMPLE = 5
+BACK_MATTER_PAGE_SAMPLE = 3
 
 
 class DocumentUnderstandingService:

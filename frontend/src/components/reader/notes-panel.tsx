@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { coursePersistence } from "@/lib/services/course-service";
+import { cn } from "@/lib/utils";
 
 interface NotesPanelProps {
   lessonId: string;
@@ -68,13 +69,16 @@ export function NotesPanel({ lessonId, lessonTitle }: NotesPanelProps) {
 
         <Button
           onClick={toggleBookmark}
-          variant="glass"
-          className="w-full justify-start gap-2.5 rounded-xl border border-border/40 hover:bg-zinc-900"
+          variant="outline"
+          className={cn(
+            "w-full justify-start gap-2.5 rounded-2xl border transition-all shadow-2xs font-bold text-xs cursor-pointer",
+            isBookmarked
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+              : "bg-card border-border text-foreground hover:bg-secondary"
+          )}
         >
-          <BookMarked className={`h-4 w-4 ${isBookmarked ? "text-amber-400 fill-amber-400" : "text-zinc-500"}`} />
-          <span className="text-xs font-medium text-foreground">
-            {isBookmarked ? "Bookmarked" : "Bookmark Lesson"}
-          </span>
+          <BookMarked className={`h-4 w-4 ${isBookmarked ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />
+          <span>{isBookmarked ? "Bookmarked Lesson" : "Bookmark Lesson"}</span>
         </Button>
       </div>
 
@@ -82,15 +86,15 @@ export function NotesPanel({ lessonId, lessonTitle }: NotesPanelProps) {
       <div className="flex-1 flex flex-col gap-3 min-h-[220px]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-4.5 w-4.5 text-indigo-400" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+            <FileText className="h-4.5 w-4.5 text-primary" />
+            <span className="text-xs font-bold uppercase tracking-wider text-foreground">
               My Scratchpad
             </span>
           </div>
           {/* Saved Status Indicator */}
           <div className="flex items-center gap-1.5 select-none">
-            <span className={`h-1.5 w-1.5 rounded-full ${isSaved ? "bg-emerald-400" : "bg-amber-400 animate-ping"}`} />
-            <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
+            <span className={`h-2 w-2 rounded-full ${isSaved ? "bg-emerald-500" : "bg-amber-500 animate-ping"}`} />
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
               {isSaved ? "Saved" : "Saving"}
             </span>
           </div>
@@ -100,20 +104,22 @@ export function NotesPanel({ lessonId, lessonTitle }: NotesPanelProps) {
           value={notes}
           onChange={handleNotesChange}
           placeholder="Jot down summaries, code syntax, checklist triggers, or questions here..."
-          className="flex-1 min-h-[180px] bg-zinc-950/60 border-border/40 font-sans text-xs leading-relaxed focus-visible:ring-offset-0 focus-visible:ring-indigo-500/20"
+          className="flex-1 min-h-[180px] bg-card border-border text-foreground font-sans text-xs leading-relaxed focus-visible:ring-offset-0 focus-visible:ring-primary/20 rounded-2xl shadow-xs"
         />
       </div>
 
       {/* Bottom Checklist Tips panel */}
-      <div className="rounded-xl border border-border/20 bg-zinc-900/10 p-4 space-y-3">
-        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-          <CheckSquare className="h-3.5 w-3.5" />
+      <div className="rounded-2xl border border-border bg-card shadow-xs p-4 space-y-3">
+        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <CheckSquare className="h-4 w-4 text-primary" />
           <span>Quick Note Guide</span>
         </div>
-        <ul className="space-y-1.5 text-[10px] text-zinc-400 leading-relaxed list-none pl-0">
-          <li>• Draft summaries in markdown.</li>
-          <li>• Checklists auto-save in local caches.</li>
-          <li>• Press <kbd className="px-1 rounded bg-zinc-950 border border-border/60">Ctrl</kbd> + <kbd className="px-1 rounded bg-zinc-950 border border-border/60">B</kbd> to toggle bookmark status.</li>
+        <ul className="space-y-1.5 text-xs text-foreground font-medium leading-relaxed list-none pl-0">
+          <li className="flex items-center gap-1.5">• Draft summaries in markdown.</li>
+          <li className="flex items-center gap-1.5">• Notes auto-save to local cache.</li>
+          <li className="flex items-center gap-1.5">
+            • Press <kbd className="px-1.5 py-0.5 rounded bg-secondary border border-border text-[10px] font-bold">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-secondary border border-border text-[10px] font-bold">B</kbd> to bookmark.
+          </li>
         </ul>
       </div>
     </div>

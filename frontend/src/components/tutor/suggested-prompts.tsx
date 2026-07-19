@@ -39,9 +39,9 @@ export function SuggestedPrompts({ onSelect }: SuggestedPromptsProps) {
         <button
           key={idx}
           onClick={() => onSelect(s.prompt)}
-          className="flex flex-col items-start text-left p-4 rounded-xl border border-border/30 bg-zinc-900/10 hover:border-border hover:bg-zinc-900/20 active:scale-98 transition-all duration-200 cursor-pointer"
+          className="flex flex-col items-start text-left p-4 rounded-xl border border-border bg-card hover:bg-accent/60 hover:border-primary/50 active:scale-98 transition-all duration-200 cursor-pointer shadow-xs"
         >
-          <div className="rounded-lg p-2 bg-zinc-950 border border-border/40 mb-3 shadow-inner">
+          <div className="rounded-lg p-2 bg-accent border border-indigo-500/20 text-primary mb-3 shadow-xs">
             {s.icon}
           </div>
           <span className="text-xs font-bold text-foreground">{s.label}</span>

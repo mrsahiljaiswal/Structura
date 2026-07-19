@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CourseThumbnail } from "./course-thumbnail";
 import { CourseProgress } from "./course-progress";
-import { Course } from "@/hooks/use-courses";
+import { Course, useCourses } from "@/hooks/use-courses";
 import { coursePersistence } from "@/lib/services/course-service";
 
 interface CourseCardProps {
@@ -21,6 +21,7 @@ interface CourseCardProps {
 
 export function CourseCard({ course, onDelete }: CourseCardProps) {
   const router = useRouter();
+  const { removeCourse } = useCourses();
   const [isPinned, setIsPinned] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
@@ -50,12 +51,12 @@ export function CourseCard({ course, onDelete }: CourseCardProps) {
     setIsFavorite((prev) => !prev);
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDelete) {
       onDelete(course.id);
     } else {
-      coursePersistence.removeCourseId(course.id);
+      await removeCourse(course.id);
     }
     setShowOptions(false);
   };
@@ -66,7 +67,7 @@ export function CourseCard({ course, onDelete }: CourseCardProps) {
   return (
     <Card
       onClick={() => router.push(`/dashboard/course/${course.id}`)}
-      className="group relative flex flex-col justify-between rounded-2xl overflow-visible border border-border/40 cursor-pointer bg-zinc-900/10 hover:border-border/80 transition-all duration-300 select-none max-w-sm w-full mx-auto"
+      className="group relative flex flex-col justify-between rounded-2xl overflow-visible border border-border cursor-pointer bg-card hover:border-primary/50 hover:shadow-md transition-all duration-300 select-none max-w-sm w-full mx-auto"
     >
       {/* Upper Thumbnail Section */}
       <div className="relative">
@@ -75,7 +76,7 @@ export function CourseCard({ course, onDelete }: CourseCardProps) {
         {/* Favorite Icon overlay */}
         <button
           onClick={toggleFavorite}
-          className="absolute top-3 left-3 p-1.5 rounded-lg bg-zinc-950/80 backdrop-blur-md border border-border/20 text-zinc-400 hover:text-red-400 transition-colors pointer-events-auto"
+          className="absolute top-3 left-3 p-1.5 rounded-lg bg-card/90 backdrop-blur-md border border-border text-muted-foreground hover:text-red-500 transition-colors pointer-events-auto shadow-xs"
           aria-label="Toggle favorite"
         >
           <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
@@ -88,7 +89,7 @@ export function CourseCard({ course, onDelete }: CourseCardProps) {
               e.stopPropagation();
               setShowOptions((prev) => !prev);
             }}
-            className="p-1.5 rounded-lg bg-zinc-950/80 backdrop-blur-md border border-border/20 text-zinc-400 hover:text-foreground transition-colors"
+            className="p-1.5 rounded-lg bg-card/90 backdrop-blur-md border border-border text-muted-foreground hover:text-foreground transition-colors shadow-xs"
             aria-label="Options"
           >
             <MoreVertical className="h-4 w-4" />
@@ -104,17 +105,17 @@ export function CourseCard({ course, onDelete }: CourseCardProps) {
                 }}
                 className="fixed inset-0 z-10"
               />
-              <div className="absolute right-0 mt-2.5 w-40 rounded-xl border border-border/40 bg-zinc-950 p-1.5 shadow-2xl z-20 animate-in fade-in zoom-in-95 duration-200">
+              <div className="absolute right-0 mt-2.5 w-40 rounded-xl border border-border bg-popover text-popover-foreground p-1.5 shadow-2xl z-20 animate-in fade-in zoom-in-95 duration-200">
                 <button
                   onClick={togglePin}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-zinc-350 hover:bg-zinc-900 hover:text-foreground transition-colors"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-colors"
                 >
                   <Pin className="h-3.5 w-3.5" />
                   <span>{isPinned ? "Unpin Course" : "Pin to Sidebar"}</span>
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>Delete Course</span>
@@ -147,13 +148,13 @@ export function CourseCard({ course, onDelete }: CourseCardProps) {
         </div>
 
         {/* Footer progress & continue trigger */}
-        <div className="flex items-center justify-between border-t border-border/20 pt-4 mt-2">
+        <div className="flex items-center justify-between border-t border-border/40 pt-4 mt-2">
           <CourseProgress course={course} showText={true} />
 
           <Button
-            variant="glass"
+            variant="default"
             size="sm"
-            className="rounded-lg h-8 text-xs shrink-0 pl-2.5 pr-3 gap-1 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30"
+            className="rounded-lg h-8 text-xs shrink-0 pl-2.5 pr-3 gap-1 font-semibold shadow-xs"
           >
             <Play className="h-3 w-3 fill-current" />
             <span>Continue</span>

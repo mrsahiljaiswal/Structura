@@ -71,69 +71,69 @@ export default function AnalyticsPage() {
         {/* Dynamic Analytics Stats cards grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: Study hours */}
-          <Card className="p-6 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
+          <Card className="p-6 border border-border bg-card shadow-xs">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Total Hours Studied
                 </p>
                 <p className="text-3xl font-black text-foreground mt-2">{totalStudyTimeHr} hrs</p>
               </div>
-              <div className="rounded-xl p-2.5 bg-zinc-950 border border-border/40 text-indigo-400">
+              <div className="rounded-xl p-2.5 bg-accent border border-indigo-500/20 text-primary">
                 <Clock className="h-5 w-5" />
               </div>
             </div>
-            <div className="border-t border-border/20 pt-4 mt-6 flex justify-between items-center text-xs text-muted-foreground font-semibold">
+            <div className="border-t border-border/40 pt-4 mt-6 flex justify-between items-center text-xs text-muted-foreground font-semibold">
               <span>Goal: 20 hrs</span>
-              <span className="text-indigo-400">
+              <span className="text-primary font-bold">
                 {Math.round((totalStudyTimeHr / 20) * 100)}% achieved
               </span>
             </div>
           </Card>
 
           {/* Card 2: Lesson Completions */}
-          <Card className="p-6 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
+          <Card className="p-6 border border-border bg-card shadow-xs">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Lessons Completed
                 </p>
                 <p className="text-3xl font-black text-foreground mt-2">{completedLessonsCount}</p>
               </div>
-              <div className="rounded-xl p-2.5 bg-zinc-950 border border-border/40 text-violet-400">
+              <div className="rounded-xl p-2.5 bg-accent border border-indigo-500/20 text-primary">
                 <Award className="h-5 w-5" />
               </div>
             </div>
-            <div className="border-t border-border/20 pt-4 mt-6 flex justify-between items-center text-xs text-muted-foreground font-semibold">
+            <div className="border-t border-border/40 pt-4 mt-6 flex justify-between items-center text-xs text-muted-foreground font-semibold">
               <span>Total Active Courses</span>
               <span className="text-foreground font-bold">{totalCourses}</span>
             </div>
           </Card>
 
           {/* Card 3: Study Streak flame */}
-          <Card className="p-6 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
+          <Card className="p-6 border border-border bg-card shadow-xs">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Current Streak
                 </p>
                 <p className="text-3xl font-black text-foreground mt-2">{streak.count} Days</p>
               </div>
-              <div className="rounded-xl p-2.5 bg-zinc-950 border border-border/40 text-orange-400">
+              <div className="rounded-xl p-2.5 bg-accent border border-indigo-500/20 text-primary">
                 <Trophy className="h-5 w-5" />
               </div>
             </div>
-            <div className="border-t border-border/20 pt-4 mt-6 flex justify-between items-center text-xs text-muted-foreground font-semibold">
+            <div className="border-t border-border/40 pt-4 mt-6 flex justify-between items-center text-xs text-muted-foreground font-semibold">
               <span>Last active study day</span>
-              <span className="text-foreground">{streak.lastDate || "Not started"}</span>
+              <span className="text-foreground font-semibold">{streak.lastDate || "Not started"}</span>
             </div>
           </Card>
         </div>
 
         {/* Weekly heatmap chart */}
-        <Card className="border border-border/20 bg-zinc-900/10">
-          <CardHeader className="flex flex-row items-start gap-4 border-b border-border/20 pb-4 mb-4">
-            <div className="rounded-lg p-2.5 bg-zinc-950 border border-border/40 text-indigo-400">
+        <Card className="border border-border bg-card shadow-xs">
+          <CardHeader className="flex flex-row items-start gap-4 border-b border-border/40 pb-4 mb-4">
+            <div className="rounded-lg p-2.5 bg-accent border border-indigo-500/20 text-primary">
               <Calendar className="h-4.5 w-4.5" />
             </div>
             <div>
@@ -150,13 +150,13 @@ export default function AnalyticsPage() {
                   <div
                     className={`h-12 w-12 rounded-xl flex items-center justify-center border font-bold text-xs transition-all ${
                       wd.active
-                        ? "bg-indigo-600/10 border-indigo-500/30 text-indigo-400 scale-102"
-                        : "bg-zinc-950 border-border/25 text-zinc-650"
+                        ? "bg-accent border-primary text-primary font-bold shadow-xs scale-102"
+                        : "bg-secondary border-border text-muted-foreground"
                     }`}
                   >
                     {wd.minutes > 0 ? `${wd.minutes}m` : "—"}
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     {wd.day}
                   </span>
                 </div>

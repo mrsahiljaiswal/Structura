@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { Providers } from "./providers";
+import { FloatingChatbot } from "@/components/chat/floating-chatbot";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,9 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}>
         <ClerkProvider>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <FloatingChatbot />
+          </Providers>
         </ClerkProvider>
       </body>
     </html>

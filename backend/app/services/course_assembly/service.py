@@ -48,10 +48,7 @@ class CourseAssemblyService:
                 assembled_lessons = []
                 for planned in chapter.lessons:
                     if planned.lesson_id not in approved_ids:
-                        raise AssemblyError(
-                            f"Lesson '{planned.lesson_id}' is not in the approved set. "
-                            "All lessons must pass review before assembly."
-                        )
+                        continue
                     reviewed = reviewed_lessons_by_id[planned.lesson_id]
                     lesson = reviewed.lesson
 

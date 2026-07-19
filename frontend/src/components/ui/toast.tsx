@@ -70,7 +70,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {mounted &&
         createPortal(
-          <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
+          <div className="fixed bottom-5 right-5 z-[10000] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
             <AnimatePresence>
               {toasts.map((t) => (
                 <motion.div
@@ -80,23 +80,23 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   exit={{ opacity: 0, y: -10, scale: 0.95 }}
                   layout
                   className={cn(
-                    "flex items-center gap-3 p-4 rounded-xl border pointer-events-auto bg-zinc-950 shadow-2xl backdrop-blur-md",
-                    t.type === "success" && "border-emerald-500/20 text-emerald-400",
-                    t.type === "error" && "border-red-500/20 text-red-400",
-                    t.type === "info" && "border-indigo-500/20 text-indigo-400"
+                    "flex items-center gap-3 p-4 rounded-2xl border pointer-events-auto bg-card border-border shadow-2xl text-foreground backdrop-blur-xl transition-all",
+                    t.type === "success" && "border-emerald-500/30 text-emerald-600 dark:text-emerald-400",
+                    t.type === "error" && "border-rose-500/30 text-rose-600 dark:text-rose-400",
+                    t.type === "info" && "border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
                   )}
                 >
-                  {t.type === "success" && <CheckCircle className="h-5 w-5 shrink-0" />}
-                  {t.type === "error" && <AlertCircle className="h-5 w-5 shrink-0" />}
-                  {t.type === "info" && <InfoIcon className="h-5 w-5 shrink-0" />}
+                  {t.type === "success" && <CheckCircle className="h-5 w-5 shrink-0 text-emerald-500" />}
+                  {t.type === "error" && <AlertCircle className="h-5 w-5 shrink-0 text-rose-500" />}
+                  {t.type === "info" && <InfoIcon className="h-5 w-5 shrink-0 text-indigo-500" />}
 
-                  <p className="text-sm font-medium text-zinc-100 flex-1 leading-relaxed">
+                  <p className="text-sm font-bold text-foreground flex-1 leading-relaxed">
                     {t.message}
                   </p>
 
                   <button
                     onClick={() => removeToast(t.id)}
-                    className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900 transition-colors"
+                    className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
                   >
                     <X className="h-4 w-4" />
                   </button>

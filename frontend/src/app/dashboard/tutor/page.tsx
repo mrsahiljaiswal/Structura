@@ -5,27 +5,47 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SuggestedPrompts, ChatMessages, ChatInput, ChatMessage } from "@/components/tutor";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCourses } from "@/hooks/use-courses";
 import api from "@/lib/axios";
-import { Sparkles, MessageSquare, BookOpen, AlertCircle, RefreshCw } from "lucide-react";
+import { Sparkles, MessageSquare, BookOpen, AlertCircle, RefreshCw, Globe } from "lucide-react";
 
 export default function TutorPage() {
   const { courses } = useCourses();
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      sender: "ai",
-      text: "Hello! I am your AI Study Tutor. Select a course context above, or ask me any technical questions about B-Trees, Index optimizations, or semantic structures.",
-    },
-  ]);
+  const [knowledgeMode, setKnowledgeMode] = useState<"courses_only" | "both" | "web_only">("both");
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("structura-tutor-messages");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {
+          console.error("Failed to load saved tutor chat messages", e);
+        }
+      }
+    }
+    return [
+      {
+        id: "welcome",
+        sender: "ai",
+        text: "Hello! I am your AI Study Tutor. Select your preferred Knowledge Source mode above (Courses Only, Courses + Web, or Web Only) to begin studying.",
+      },
+    ];
+  });
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && messages.length > 0) {
+      localStorage.setItem("structura-tutor-messages", JSON.stringify(messages));
+    }
+  }, [messages]);
 
   const breadcrumbs = [
     { label: "AI Tutor", href: "/dashboard/tutor" },
@@ -46,10 +66,17 @@ export default function TutorPage() {
     setIsLoading(true);
 
     try {
-      // Call backend REST API tutor chat endpoint
-      const res = await api.post("/api/v1/tutor/chat", {
+      // Format chat history
+      const history = messages
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text }));
+
+      // Call backend REST API unified chat endpoint
+      const res = await api.post("/api/v1/chat", {
         message: text,
         course_id: selectedCourseId || null,
+        knowledge_mode: knowledgeMode,
+        chat_history: history,
       });
 
       // Handle response structure
@@ -57,16 +84,16 @@ export default function TutorPage() {
       const aiMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: "ai",
-        text: aiResponse.response || aiResponse.text || "I processed your question, but could not assemble a response summary.",
-        citation: aiResponse.citation || aiResponse.reference || null,
+        text: aiResponse.reply || "I processed your question based on your selected mode.",
       };
 
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
+      console.error("Tutor Chat Error:", err);
       const errMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: "ai",
-        text: "⚠️ Generation failed. Make sure your local Python FastAPI server is running and configured with a Groq API Key.",
+        text: "⚠️ Connection issue while contacting AI Tutor. Please ensure your Python FastAPI server is running.",
       };
       setMessages((prev) => [...prev, errMsg]);
     } finally {
@@ -75,89 +102,58 @@ export default function TutorPage() {
   };
 
   const handleClearHistory = () => {
-    setMessages([
+    const defaultWelcome: ChatMessage[] = [
       {
         id: "welcome",
         sender: "ai",
-        text: "Chat history cleared. Select a course context to begin studying with specific document context.",
+        text: "Chat history cleared. Select a course context or change Knowledge Mode to start asking questions.",
       },
-    ]);
+    ];
+    setMessages(defaultWelcome);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("structura-tutor-messages");
+    }
   };
 
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
-      <div className="space-y-6 h-[calc(100vh-10rem)] flex flex-col justify-between">
-        {/* Top Navigation Row: Title & Context Selector dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/20 pb-4 shrink-0">
-          <div className="space-y-1 text-left">
-            <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs tracking-wider uppercase">
-              <Sparkles className="h-4 w-4" />
-              <span>Cognitive Assistant</span>
-            </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
-              <MessageSquare className="h-5.5 w-5.5 text-indigo-400" />
-              <span>AI Study Tutor</span>
-            </h1>
-          </div>
-
-          {/* Context Selector Select Element */}
-          <div className="flex items-center gap-3 self-start sm:self-auto select-none">
-            <label htmlFor="context-select" className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider whitespace-nowrap">
-              Active Context:
-            </label>
-            <select
-              id="context-select"
-              value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="h-9 px-3 rounded-xl border border-border/40 bg-zinc-950 text-xs font-semibold text-foreground focus:outline-none focus:border-indigo-500 cursor-pointer"
-            >
-              <option value="">Universal AI Tutor</option>
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-
-            {/* Clear Button */}
-            <button
-              onClick={handleClearHistory}
-              className="p-2 rounded-xl text-zinc-500 hover:text-foreground hover:bg-secondary/40 transition-colors shrink-0"
-              aria-label="Clear chat"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Middle Area: Message History or Prompt suggestions */}
-        <div className="flex-1 min-h-0 flex flex-col justify-between relative bg-zinc-900/10 border border-border/30 rounded-2xl overflow-hidden backdrop-blur-sm">
+      <div className="relative flex flex-col h-[calc(100vh-4rem)] w-full justify-between overflow-hidden">
+        {/* Full-Width Maximized Chat Viewport */}
+        <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto flex flex-col justify-between overflow-y-auto">
           {messages.length <= 1 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/5 border border-indigo-500/15 text-indigo-400">
-                <Sparkles className="h-6 w-6 animate-pulse" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-accent border border-indigo-500/20 text-primary shadow-md">
+                <Sparkles className="h-8 w-8 animate-pulse text-primary" />
               </div>
               <div className="space-y-2 max-w-md">
-                <h2 className="font-bold text-foreground text-sm">NotebookLM Study Mode</h2>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Start typing a custom question below, select an active study outline, or choose from one of the suggested checkups.
+                <h1 className="font-black text-foreground text-xl tracking-tight">AI Study Tutor</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Select your knowledge source and course context from the floating bar below to begin asking questions.
                 </p>
               </div>
 
               <SuggestedPrompts onSelect={(prompt) => handleSendMessage(prompt)} />
             </div>
           ) : (
-            <ChatMessages messages={messages} isLoading={isLoading} />
+            <div className="flex-1 overflow-y-auto pt-2 pb-32">
+              <ChatMessages messages={messages} isLoading={isLoading} />
+            </div>
           )}
         </div>
 
-        {/* Lower Row: Form Input Container */}
-        <div className="shrink-0 max-w-4xl w-full mx-auto pb-4">
+        {/* Floating Bottom Dock Bar (ChatGPT / Gemini Style) */}
+        <div className="absolute bottom-4 left-0 right-0 z-30 px-4">
           <ChatInput
             value={inputValue}
             onChange={setInputValue}
             onSubmit={() => handleSendMessage()}
             disabled={isLoading}
+            knowledgeMode={knowledgeMode}
+            onModeChange={setKnowledgeMode}
+            courses={courses}
+            selectedCourseId={selectedCourseId}
+            onCourseChange={setSelectedCourseId}
+            onClearHistory={handleClearHistory}
           />
         </div>
       </div>

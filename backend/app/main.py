@@ -22,6 +22,9 @@ from app.core.logging import setup_logging
 logger = logging.getLogger(__name__)
 
 
+from sqlalchemy import text
+from app.db.session import engine
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
@@ -31,6 +34,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         settings.ENVIRONMENT,
         settings.DEBUG,
     )
+
+    # Auto-ensure database schema columns exist
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE user_progress ADD COLUMN IF NOT EXISTS streak_count INTEGER NOT NULL DEFAULT 0;"))
+            await conn.execute(text("ALTER TABLE user_progress ADD COLUMN IF NOT EXISTS streak_last_date VARCHAR(64);"))
+            await conn.execute(text("ALTER TABLE user_progress ADD COLUMN IF NOT EXISTS chat_history JSONB NOT NULL DEFAULT '[]'::jsonb;"))
+            await conn.execute(text("ALTER TABLE courses ADD COLUMN IF NOT EXISTS user_id VARCHAR(255);"))
+            logger.info("PostgreSQL schema columns verified and updated.")
+    except Exception as e:
+        logger.warning("Database schema check notice: %s", e)
+
     yield
     logger.info("Shutting down %s", settings.PROJECT_NAME)
 

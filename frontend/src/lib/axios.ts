@@ -16,9 +16,21 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  // Automatically attach Clerk logged-in user ID as custom header
-  if (typeof window !== "undefined" && (window as any).Clerk?.user?.id) {
-    config.headers["X-User-Id"] = (window as any).Clerk.user.id;
+  if (typeof window !== "undefined") {
+    // 1. Extract Clerk logged-in user ID
+    const win = window as unknown as Record<string, { Clerk?: { user?: { id?: string } } }>;
+    let clerkUserId = win?.Clerk?.user?.id;
+
+    // 2. Local storage cache fallback for user switching
+    if (!clerkUserId) {
+      clerkUserId = localStorage.getItem("structura_active_user_id") || undefined;
+    } else {
+      localStorage.setItem("structura_active_user_id", clerkUserId);
+    }
+
+    if (clerkUserId) {
+      config.headers["X-User-Id"] = clerkUserId;
+    }
   }
   return config;
 });
@@ -29,7 +41,7 @@ api.interceptors.response.use(
     // Centralized error handling/logging hook.
     if (process.env.NODE_ENV === "development") {
       // eslint-disable-next-line no-console
-      console.error("[api error]", error.response?.status, error.message);
+      console.warn("[api response info]", error.response?.status, error.message);
     }
     return Promise.reject(error);
   },

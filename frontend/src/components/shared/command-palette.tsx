@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, BookOpen, Compass, ShieldAlert, Sparkles, Settings, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCourses } from "@/hooks/use-courses";
 
 interface CommandItem {
   id: string;
@@ -142,8 +143,87 @@ export function CommandPalette({
     );
   }
 
+  // 1. Fetch user's courses to enable deep search across chapters, topics, lessons, and keywords
+  const { courses } = useCourses();
+
+  // 2. Build dynamic search index from course material
+  const courseSearchItems: CommandItem[] = [];
+  if (courses) {
+    courses.forEach((course) => {
+      // Index Course (Topic level)
+      courseSearchItems.push({
+        id: `course-${course.id}`,
+        title: course.title,
+        subtitle: `Course \u2022 ${course.difficulty || "All Levels"}`,
+        category: "Topics & Courses",
+        icon: <BookOpen className="h-4 w-4" />,
+        action: () => {
+          router.push(`/dashboard/course/${course.id}`);
+          onClose();
+        },
+      });
+
+      course.chapters?.forEach((chapter) => {
+        // Index Chapter
+        courseSearchItems.push({
+          id: `chapter-${chapter.id}`,
+          title: chapter.title,
+          subtitle: `Chapter \u2022 ${course.title}`,
+          category: "Chapters",
+          icon: <Compass className="h-4 w-4" />,
+          action: () => {
+            const firstLesson = chapter.lessons?.[0];
+            if (firstLesson) {
+              router.push(`/dashboard/lesson/${firstLesson.id}`);
+            } else {
+              router.push(`/dashboard/course/${course.id}`);
+            }
+            onClose();
+          },
+        });
+
+        chapter.lessons?.forEach((lesson) => {
+          // Index Lesson
+          courseSearchItems.push({
+            id: `lesson-${lesson.id}`,
+            title: lesson.title,
+            subtitle: `Lesson \u2022 ${chapter.title}`,
+            category: "Lessons",
+            icon: <BookOpen className="h-4 w-4" />,
+            action: () => {
+              router.push(`/dashboard/lesson/${lesson.id}`);
+              onClose();
+            },
+          });
+
+          // Index Keywords / Topics (from key_takeaways)
+          if (lesson.key_takeaways && Array.isArray(lesson.key_takeaways)) {
+            lesson.key_takeaways.forEach((takeaway, idx) => {
+              const keywordTitle = typeof takeaway === "string" ? takeaway : (takeaway.title || takeaway.concept || "Key Topic");
+              if (keywordTitle && typeof keywordTitle === "string") {
+                courseSearchItems.push({
+                  id: `keyword-${lesson.id}-${idx}`,
+                  title: keywordTitle,
+                  subtitle: `Keyword in ${lesson.title}`,
+                  category: "Keywords",
+                  icon: <Sparkles className="h-4 w-4" />,
+                  action: () => {
+                    router.push(`/dashboard/lesson/${lesson.id}?highlight=${encodeURIComponent(keywordTitle)}`);
+                    onClose();
+                  },
+                });
+              }
+            });
+          }
+        });
+      });
+    });
+  }
+
+  const allItems = [...commandItems, ...courseSearchItems];
+
   // Filter items
-  const filtered = commandItems.filter(
+  const filtered = allItems.filter(
     (item) =>
       item.title.toLowerCase().includes(search.toLowerCase()) ||
       item.category.toLowerCase().includes(search.toLowerCase())
@@ -193,11 +273,11 @@ export function CommandPalette({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: -10 }}
             transition={{ type: "spring", duration: 0.3 }}
-            className="relative z-10 w-full max-w-xl rounded-2xl border border-border/40 bg-zinc-950 shadow-2xl flex flex-col overflow-hidden max-h-[60vh]"
+            className="relative z-10 w-full max-w-xl rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl flex flex-col overflow-hidden max-h-[60vh]"
           >
             {/* Search Input */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-zinc-900/30 border-b border-border/20">
-              <Search className="h-5 w-5 text-zinc-500 shrink-0" />
+            <div className="flex items-center gap-3 px-4 py-3 bg-card border-b border-border">
+              <Search className="h-5 w-5 text-muted-foreground shrink-0" />
               <input
                 ref={inputRef}
                 value={search}
@@ -206,7 +286,7 @@ export function CommandPalette({
                   setActiveIndex(0);
                 }}
                 placeholder="Search commands, pages..."
-                className="w-full bg-transparent text-sm text-foreground placeholder-zinc-500 focus:outline-none"
+                className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
             </div>
 
@@ -221,7 +301,7 @@ export function CommandPalette({
                   }, {} as Record<string, CommandItem[]>)
                 ).map(([category, items]) => (
                   <div key={category} className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 px-3 py-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground px-3 py-1.5">
                       {category}
                     </p>
                     {items.map((item) => {
@@ -236,12 +316,12 @@ export function CommandPalette({
                           className={cn(
                             "flex items-center justify-between rounded-xl px-3 py-2.5 cursor-pointer transition-colors text-sm",
                             isSelected
-                              ? "bg-primary text-primary-foreground"
-                              : "text-zinc-350 hover:bg-zinc-900/60"
+                              ? "bg-primary text-primary-foreground font-semibold"
+                              : "text-foreground hover:bg-secondary"
                           )}
                         >
                           <div className="flex items-center gap-3">
-                            <span className={cn(isSelected ? "text-white" : "text-indigo-400")}>
+                            <span className={cn(isSelected ? "text-primary-foreground" : "text-primary")}>
                               {item.icon}
                             </span>
                             <div className="flex flex-col">
@@ -250,7 +330,7 @@ export function CommandPalette({
                                 <span
                                   className={cn(
                                     "text-xs mt-0.5",
-                                    isSelected ? "text-primary-foreground/75" : "text-zinc-500"
+                                    isSelected ? "text-primary-foreground/85" : "text-muted-foreground"
                                   )}
                                 >
                                   {item.subtitle}
@@ -268,7 +348,7 @@ export function CommandPalette({
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center justify-center p-8 text-center text-zinc-500">
+                <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
                   <p>No results found for &quot;{search}&quot;</p>
                 </div>
               )}

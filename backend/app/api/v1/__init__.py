@@ -6,7 +6,7 @@ in the main API router.
 
 from fastapi import APIRouter
 
-from app.api.v1 import documents, courses, lessons, user
+from app.api.v1 import documents, courses, lessons, user, chat
 
 v1_router = APIRouter()
 
@@ -15,3 +15,4 @@ v1_router.include_router(documents.router, prefix="")
 v1_router.include_router(courses.router, prefix="")
 v1_router.include_router(lessons.router, prefix="")
 v1_router.include_router(user.router, prefix="")
+v1_router.include_router(chat.router, prefix="")

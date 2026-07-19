@@ -47,6 +47,9 @@ class UserProgressSchema(BaseModel):
     study_time_by_day: dict = {}
     quiz_scores: dict = {}
     lesson_notes: dict = {}
+    streak_count: int = 0
+    streak_last_date: Optional[str] = None
+    chat_history: list = []
 
     class Config:
         from_attributes = True

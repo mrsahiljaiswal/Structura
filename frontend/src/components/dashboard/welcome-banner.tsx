@@ -10,11 +10,11 @@ import { coursePersistence } from "@/lib/services/course-service";
 
 interface WelcomeBannerProps {
   fullName?: string | null;
+  streakCount?: number;
 }
 
-export function WelcomeBanner({ fullName }: WelcomeBannerProps) {
+export function WelcomeBanner({ fullName, streakCount = 0 }: WelcomeBannerProps) {
   const firstName = fullName ? fullName.split(" ")[0] : "Learner";
-  const streak = coursePersistence.getStreak();
 
   // Greeting based on time of day
   const getGreeting = () => {
@@ -25,14 +25,13 @@ export function WelcomeBanner({ fullName }: WelcomeBannerProps) {
   };
 
   return (
-    <Card className="p-8 border-none bg-gradient-to-br from-indigo-900/20 via-violet-900/10 to-zinc-950/50 relative overflow-hidden">
+    <Card className="p-8 border border-border bg-card shadow-xs relative overflow-hidden">
       {/* Visual decorative nodes */}
-      <div className="absolute right-[-10%] top-[-20%] h-60 w-60 rounded-full bg-indigo-500/10 blur-[80px] pointer-events-none" />
-      <div className="absolute left-[-10%] bottom-[-20%] h-40 w-40 rounded-full bg-violet-500/5 blur-[80px] pointer-events-none" />
+      <div className="absolute right-[-10%] top-[-20%] h-60 w-60 rounded-full bg-indigo-500/5 blur-[80px] pointer-events-none" />
 
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-xl">
-          <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs tracking-wider uppercase">
+          <div className="flex items-center gap-2 text-primary font-semibold text-xs tracking-wider uppercase">
             <Sparkles className="h-4 w-4" />
             <span>Learning Dashboard</span>
           </div>
@@ -45,19 +44,19 @@ export function WelcomeBanner({ fullName }: WelcomeBannerProps) {
         </div>
 
         {/* Dynamic Streak Badge Card */}
-        <div className="flex items-center gap-4 bg-zinc-900/40 border border-border/40 backdrop-blur-md rounded-2xl p-4 shrink-0 shadow-lg shadow-indigo-500/[0.01]">
+        <div className="flex items-center gap-4 bg-secondary border border-border rounded-2xl p-4 shrink-0 shadow-xs">
           <div className="h-12 w-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
             <Flame className="h-6 w-6 fill-current animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-2xl font-black text-foreground">
-                {streak.count}
+                {streakCount}
               </span>
               <span className="text-xs font-semibold text-muted-foreground uppercase">Days</span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {streak.count > 0 ? "Keep your streak active today!" : "Start study to ignite your streak!"}
+              {streakCount > 0 ? "Keep your streak active today!" : "Start study to ignite your streak!"}
             </p>
           </div>
         </div>

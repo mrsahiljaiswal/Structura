@@ -25,6 +25,7 @@ class Course(Base):
     __tablename__ = "courses"
 
     id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String(255), nullable=True, index=True)
     document_id = Column(PG_UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
     title = Column(String(1024), nullable=False)
     description = Column(Text, nullable=True)
@@ -66,7 +67,7 @@ class Lesson(Base):
 class UserProgress(Base):
     __tablename__ = "user_progress"
 
-    user_id = Column(String(255), primary key=True)
+    user_id = Column(String(255), primary_key=True)
     pinned_courses = Column(JSONB, nullable=False, default=list)
     favorite_courses = Column(JSONB, nullable=False, default=list)
     completed_lessons = Column(JSONB, nullable=False, default=list)
@@ -74,4 +75,7 @@ class UserProgress(Base):
     study_time_by_day = Column(JSONB, nullable=False, default=dict)
     quiz_scores = Column(JSONB, nullable=False, default=dict)
     lesson_notes = Column(JSONB, nullable=False, default=dict)
+    streak_count = Column(Integer, nullable=False, default=0)
+    streak_last_date = Column(String(64), nullable=True)
+    chat_history = Column(JSONB, nullable=False, default=list)
 

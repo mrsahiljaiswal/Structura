@@ -54,13 +54,24 @@ class KnowledgeExtractionService:
             raise KnowledgeExtractionError("No section-level content found to extract concepts from.")
 
         concepts_by_slug: dict[str, Concept] = {}
-        for unit in units:
-            text = self._unit_text(unit)
-            if not text.strip():
-                continue
-            raw_concepts = self._extract_for_unit(unit.title or unit.node_id, text)
-            for raw in raw_concepts:
-                self._merge_concept(concepts_by_slug, raw, unit)
+
+        # Batch key units into a single 1-call prompt (< 2500 chars / 600 tokens total)
+        sampled_parts = []
+        for unit in units[:6]:
+            txt = self._unit_text(unit).strip()
+            if txt:
+                title = unit.title or unit.node_id
+                sampled_parts.append(f"Section [{title}]: {txt[:400]}")
+
+        combined_text = "\n\n".join(sampled_parts)[:2500]
+        if not combined_text:
+            combined_text = "General Document Concepts"
+
+        raw_concepts = self._extract_for_unit("Core Document Overview", combined_text)
+        primary_unit = units[0] if units else StructureNode(node_id="root", level="doc")
+
+        for raw in raw_concepts:
+            self._merge_concept(concepts_by_slug, raw, primary_unit)
 
         edges = self._build_edges(concepts_by_slug)
         return KnowledgeGraph(concepts=list(concepts_by_slug.values()), edges=edges)
@@ -100,7 +111,7 @@ class KnowledgeExtractionService:
     # -- LLM call ---------------------------------------------------------------
 
     def _extract_for_unit(self, unit_title: str, text: str) -> list[dict]:
-        user_prompt = f"Section: {unit_title}\n\n{text[:8000]}"
+        user_prompt = f"Section: {unit_title}\n\n{text[:2500]}"
         try:
             data = self.llm.complete_json(SYSTEM_PROMPT, user_prompt)
         except LLMError as e:

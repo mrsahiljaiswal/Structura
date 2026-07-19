@@ -7,6 +7,7 @@
 
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { Upload, FileText, AlertCircle, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface UploadState {
 
 export function UploadDropZone() {
   const router = useRouter();
+  const { user } = useUser();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>({
     status: "idle",
@@ -168,7 +170,11 @@ export function UploadDropZone() {
         }));
       });
 
-      xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL}/api/v1/documents/upload`);
+      xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/documents/upload`);
+      const activeUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("structura_active_user_id") : null);
+      if (activeUserId) {
+        xhr.setRequestHeader("X-User-Id", activeUserId);
+      }
       xhr.send(formData);
     } catch (error) {
       setUploadState({
@@ -205,8 +211,8 @@ export function UploadDropZone() {
             onDragLeave={() => setIsDragOver(false)}
             className={`relative rounded-2xl border-2 border-dashed transition-all duration-350 p-12 text-center cursor-pointer group flex flex-col items-center justify-center min-h-[220px] ${
               isDragOver
-                ? "border-primary bg-primary/5 scale-[1.01] shadow-2xl"
-                : "border-border/60 bg-zinc-900/10 hover:border-border hover:bg-zinc-900/30"
+                ? "border-primary bg-accent scale-[1.01] shadow-xl"
+                : "border-border bg-secondary/30 hover:border-border hover:bg-secondary"
             }`}
           >
             <input
@@ -216,12 +222,12 @@ export function UploadDropZone() {
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0 z-10"
             />
 
-            <div className="rounded-2xl bg-indigo-500/5 p-4 border border-indigo-500/15 mb-4 group-hover:scale-110 transition-transform">
-              <Upload className="h-6 w-6 text-indigo-400" />
+            <div className="rounded-2xl bg-accent p-4 border border-indigo-500/20 mb-4 group-hover:scale-110 transition-transform">
+              <Upload className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-base font-bold text-foreground">Drop your PDF document here</h3>
             <p className="text-xs text-muted-foreground mt-1">or click to browse local files</p>
-            <p className="text-[10px] text-zinc-500 mt-4">
+            <p className="text-[10px] text-muted-foreground mt-4">
               PDF files only • Maximum size 50 MB
             </p>
           </div>
@@ -230,7 +236,7 @@ export function UploadDropZone() {
         {/* State: File selected, awaiting user confirm */}
         {uploadState.file && uploadState.status !== "uploading" && uploadState.status !== "processing" && !uploadState.error && (
           <div className="space-y-6">
-            <div className="flex items-center gap-4 p-4 bg-zinc-900/20 border border-border/20 rounded-2xl">
+            <div className="flex items-center gap-4 p-4 bg-secondary border border-border rounded-2xl">
               <div className="rounded-xl bg-indigo-500/10 p-3 text-indigo-400">
                 <FileText className="h-6 w-6" />
               </div>
@@ -303,21 +309,21 @@ export function UploadDropZone() {
             </div>
 
             {uploadState.processingResult && (
-              <div className="rounded-2xl border border-border/30 bg-zinc-900/10 p-5 space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-5 space-y-4 shadow-xs">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-xl bg-zinc-950 p-4 border border-border/20 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+                  <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60 text-center shadow-2xs">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                       Pages parsed
                     </p>
-                    <p className="mt-2 text-3xl font-black text-indigo-400">
+                    <p className="mt-2 text-3xl font-black text-primary">
                       {uploadState.processingResult.page_count}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-zinc-950 p-4 border border-border/20 text-center">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+                  <div className="rounded-2xl bg-secondary/50 p-4 border border-border/60 text-center shadow-2xs">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                       Characters extracted
                     </p>
-                    <p className="mt-2 text-2xl font-black text-violet-400 truncate">
+                    <p className="mt-2 text-2xl font-black text-primary truncate">
                       {uploadState.processingResult.character_count.toLocaleString()}
                     </p>
                   </div>

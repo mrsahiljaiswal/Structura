@@ -80,7 +80,7 @@ class LessonAuthoringService:
     @staticmethod
     def _build_prompt(planned_lesson: PlannedLesson, source_units: list[LearningUnit], prereq_titles: list[str]) -> str:
         units_text = "\n\n".join(
-            f"--- Learning unit: {u.topic} ---\nSummary: {u.summary}\nKeywords: {', '.join(u.keywords)}\n\n{u.text}"
+            f"--- Learning unit: {u.topic} ---\nSummary: {u.summary}\nKeywords: {', '.join(u.keywords)}\n\n{u.text[:1200]}"
             for u in source_units
         )
         return (

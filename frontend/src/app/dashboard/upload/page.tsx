@@ -38,24 +38,24 @@ export default function UploadPage() {
 
         {/* Supporting Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-5 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
-            <span className="text-lg font-black text-indigo-400">01</span>
+          <Card className="p-5 border border-border bg-card shadow-xs">
+            <span className="text-lg font-black text-primary">01</span>
             <h3 className="font-bold text-foreground mt-2 text-sm">Upload File</h3>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Select or drop a standard PDF document (up to 50 MB limits).
             </p>
           </Card>
 
-          <Card className="p-5 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
-            <span className="text-lg font-black text-violet-400">02</span>
+          <Card className="p-5 border border-border bg-card shadow-xs">
+            <span className="text-lg font-black text-primary">02</span>
             <h3 className="font-bold text-foreground mt-2 text-sm">AI Processing</h3>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               We extract text, segment chunks, and design chapter lessons.
             </p>
           </Card>
 
-          <Card className="p-5 border border-border/20 bg-zinc-900/10 backdrop-blur-sm">
-            <span className="text-lg font-black text-indigo-400">03</span>
+          <Card className="p-5 border border-border bg-card shadow-xs">
+            <span className="text-lg font-black text-primary">03</span>
             <h3 className="font-bold text-foreground mt-2 text-sm">Start Learning</h3>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Jump straight into read notes, taking quizzes, and talking to tutors.
@@ -64,9 +64,9 @@ export default function UploadPage() {
         </div>
 
         {/* Details Note Alert */}
-        <Card className="p-5 border border-border/20 bg-zinc-900/10">
+        <Card className="p-5 border border-border bg-card shadow-xs">
           <div className="flex items-start gap-3.5">
-            <BookOpen className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+            <BookOpen className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
                 Processing Benchmark Limits

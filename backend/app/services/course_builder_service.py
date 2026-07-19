@@ -94,7 +94,7 @@ def _format_lesson_content(lesson) -> str:
     return "\n\n".join(parts)
 
 
-def persist_course_sync(document_id: UUID, stored_filename: str, course: Any):
+def persist_course_sync(document_id: UUID, stored_filename: str, course: Any, user_id: str = None):
     """Persist course into the database using a synchronous SQLAlchemy session.
 
     Supports both legacy dict format and FinalCourse Pydantic object.
@@ -136,7 +136,8 @@ def persist_course_sync(document_id: UUID, stored_filename: str, course: Any):
 
             logger.info(f"Creating course: {title}")
             course_row = CourseModel(
-                document_id=document_id, 
+                document_id=document_id,
+                user_id=user_id,
                 title=title, 
                 description=description, 
                 difficulty=difficulty,
@@ -214,14 +215,21 @@ def persist_course_sync(document_id: UUID, stored_filename: str, course: Any):
 
 
 def ensure_tables():
-    """Create tables synchronously if they don't exist yet. Useful for local/dev runs.
+    """Create tables synchronously if they don't exist yet and add missing columns.
     """
     logger.info("Ensuring database tables exist...")
     try:
         logger.info(f"Using database: {settings.SQLALCHEMY_DATABASE_URI_SYNC}")
         sync_engine = create_engine(settings.SQLALCHEMY_DATABASE_URI_SYNC)
         Base.metadata.create_all(bind=sync_engine)
-        logger.info("Database tables created successfully")
+
+        # Migration: Ensure user_id column exists on courses table
+        with sync_engine.connect() as conn:
+            from sqlalchemy import text
+            conn.execute(text("ALTER TABLE courses ADD COLUMN IF NOT EXISTS user_id VARCHAR(255);"))
+            conn.commit()
+
+        logger.info("Database tables & columns updated successfully")
     except Exception as e:
         logger.error(f"Failed to create tables: {e}", exc_info=True)
         raise

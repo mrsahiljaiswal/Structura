@@ -63,6 +63,7 @@ class CoursePersistenceService {
           streak_last_date: res.data.streak_last_date || null,
         };
         this.isLoaded = true;
+        await this.updateStreak();
         window.dispatchEvent(new Event("storage"));
       } catch (err) {
         console.error("Failed to load user progress from server", err);
@@ -77,8 +78,9 @@ class CoursePersistenceService {
   async saveToServer(): Promise<void> {
     if (typeof window === "undefined") return;
     try {
+      const win = (window as unknown as Record<string, { Clerk?: { user?: { id?: string } } }>);
       const payload = {
-        user_id: (window as any).Clerk?.user?.id || "anonymous",
+        user_id: win?.Clerk?.user?.id || "anonymous",
         pinned_courses: this.progress.pinned_courses,
         favorite_courses: this.progress.favorite_courses,
         completed_lessons: this.progress.completed_lessons,
@@ -160,8 +162,7 @@ class CoursePersistenceService {
       completed.splice(idx, 1);
     }
     this.progress.completed_lessons = completed;
-    await this.saveToServer();
-    window.dispatchEvent(new Event("storage"));
+    await this.updateStreak();
   }
 
   isLessonCompleted(lessonId: string): boolean {

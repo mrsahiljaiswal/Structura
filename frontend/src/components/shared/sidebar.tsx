@@ -31,9 +31,30 @@ const menuItems = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isCollapsed?: boolean;
+  onToggle?: () => void;
+}
+
+export function Sidebar({ isCollapsed: externalCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isInternalCollapsed, setIsInternalCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isCollapsed = externalCollapsed !== undefined ? externalCollapsed : isInternalCollapsed;
+
+  const handleToggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setIsInternalCollapsed((prev) => !prev);
+    }
+  };
+
   const [pinnedCourses, setPinnedCourses] = useState<{ id: string; title: string }[]>([]);
 
   // Load pinned courses from localStorage
@@ -54,10 +75,11 @@ export function Sidebar() {
   }, []);
 
   return (
-    <motion.aside
-      animate={{ width: isCollapsed ? 64 : 260 }}
-      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-      className="fixed left-0 top-16 bottom-0 z-20 border-r border-border/40 bg-zinc-950/80 backdrop-blur-md flex flex-col justify-between overflow-hidden"
+    <aside
+      className={cn(
+        "fixed left-0 top-16 bottom-0 z-20 border-r border-sidebar-border bg-sidebar hidden md:flex flex-col justify-between overflow-hidden shadow-xs select-none transition-all duration-200 ease-in-out",
+        isCollapsed ? "w-16" : "w-[260px]"
+      )}
     >
       {/* Upper Navigation Block */}
       <div className="p-3 flex-1 flex flex-col gap-6 overflow-y-auto overflow-x-hidden scrollbar-none">
@@ -71,29 +93,20 @@ export function Sidebar() {
                 key={href}
                 href={href}
                 className={cn(
-                  "relative flex items-center h-10 rounded-xl px-3 text-sm font-medium transition-all group select-none",
+                  "relative flex items-center h-10 rounded-xl px-3 text-sm font-medium transition-colors group select-none",
                   isActive
-                    ? "text-primary-foreground font-semibold"
-                    : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
                 )}
               >
-                {/* Active Slider Indicator background */}
-                {isActive && (
-                  <motion.div
-                    layoutId="active-nav-indicator"
-                    className="absolute inset-0 bg-primary rounded-xl z-0"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-
                 <span className="relative z-10 flex items-center gap-3">
                   <Icon className="h-5 w-5 shrink-0" />
-                  {!isCollapsed && <span>{label}</span>}
+                  {mounted && !isCollapsed && <span>{label}</span>}
                 </span>
 
                 {/* Tooltip for collapsed mode */}
                 {isCollapsed && (
-                  <div className="absolute left-16 z-50 px-2 py-1 text-xs font-semibold text-zinc-100 bg-zinc-950 border border-border/45 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 whitespace-nowrap">
+                  <div className="absolute left-16 z-50 px-2.5 py-1 text-xs font-semibold text-popover-foreground bg-popover border border-border rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 whitespace-nowrap">
                     {label}
                   </div>
                 )}
@@ -105,8 +118,8 @@ export function Sidebar() {
         {/* Pinned Courses / Favorites Section (only visible when expanded) */}
         {!isCollapsed && pinnedCourses.length > 0 && (
           <div className="space-y-2 border-t border-border/20 pt-4 px-2">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-              <Pin className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              <Pin className="h-3 w-3 text-primary" />
               <span>Pinned Courses</span>
             </div>
             <div className="space-y-1.5">
@@ -116,7 +129,7 @@ export function Sidebar() {
                   href={`/dashboard/course/${c.id}`}
                   className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground truncate py-1 transition-colors"
                 >
-                  <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                   <span className="truncate">{c.title}</span>
                 </Link>
               ))}
@@ -126,24 +139,17 @@ export function Sidebar() {
       </div>
 
       {/* Lower Toggle Bar */}
-      <div className="p-3 border-t border-border/25 bg-zinc-950 flex items-center justify-between">
-        {!isCollapsed && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground select-none pl-1">
-            <Clock className="h-3.5 w-3.5" />
-            <span>Streaks: 7 Days</span>
-          </div>
-        )}
-
+      <div className={cn("p-2.5 border-t border-sidebar-border bg-sidebar flex items-center", isCollapsed ? "justify-center" : "justify-end")}>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsCollapsed((prev) => !prev)}
-          className="h-8 w-8 rounded-lg text-zinc-400 hover:text-foreground mx-auto"
+          onClick={handleToggle}
+          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
-    </motion.aside>
+    </aside>
   );
 }

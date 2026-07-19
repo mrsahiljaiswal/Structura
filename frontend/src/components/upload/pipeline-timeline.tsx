@@ -85,9 +85,9 @@ export function PipelineTimeline({
   return (
     <div className="w-full space-y-6">
       {/* Header Stat Area */}
-      <div className="flex items-center justify-between p-4 bg-zinc-900/30 border border-border/20 rounded-xl backdrop-blur-md">
+      <div className="flex items-center justify-between p-5 bg-card border border-border rounded-2xl shadow-xs">
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             AI Pipeline Processing
           </p>
           <p className="text-lg font-bold text-foreground mt-1">
@@ -103,7 +103,7 @@ export function PipelineTimeline({
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
               Est. Time Remaining
             </p>
-            <p className="text-lg font-black text-indigo-400 mt-1 animate-pulse">
+            <p className="text-lg font-black text-primary mt-1 animate-pulse">
               ~{timeLeft}s
             </p>
           </div>
@@ -111,7 +111,7 @@ export function PipelineTimeline({
       </div>
 
       {/* Timeline Progression Line */}
-      <div className="relative border-l border-border/40 pl-6 ml-3.5 space-y-6">
+      <div className="relative border-l border-border pl-6 ml-3.5 space-y-6">
         {pipelineSteps.map((step) => {
           const isFinished =
             processingComplete ||
@@ -126,16 +126,16 @@ export function PipelineTimeline({
               {/* Timeline Indicator Icons */}
               <span
                 className={cn(
-                  "absolute left-[-38px] top-0 flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-950 border shadow-md",
-                  isFinished && "border-emerald-500/30 text-emerald-400 bg-emerald-500/[0.02]",
-                  isActive && "border-indigo-500 text-indigo-400 animate-pulse bg-indigo-500/[0.02]",
-                  isErrorStep && "border-red-500/40 text-red-400 bg-red-500/[0.02]",
-                  isPending && "border-border/40 text-muted-foreground"
+                  "absolute left-[-38px] top-0 flex h-6 w-6 items-center justify-center rounded-lg bg-card border shadow-2xs transition-colors",
+                  isFinished && "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+                  isActive && "border-primary text-primary animate-pulse bg-primary/10",
+                  isErrorStep && "border-red-500/40 text-red-500 bg-red-500/10",
+                  isPending && "border-border text-muted-foreground bg-secondary/80"
                 )}
               >
                 {isFinished && <CheckCircle className="h-4 w-4" />}
                 {isActive && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isErrorStep && <AlertCircle className="h-4 w-4 text-red-400" />}
+                {isErrorStep && <AlertCircle className="h-4 w-4 text-red-500" />}
                 {isPending && <Circle className="h-2 w-2 fill-current" />}
               </span>
 

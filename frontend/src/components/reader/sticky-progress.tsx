@@ -33,9 +33,9 @@ export function StickyProgress() {
   }, []);
 
   return (
-    <div className="fixed top-16 left-0 right-0 z-30 h-1 bg-zinc-900 overflow-hidden pointer-events-none">
+    <div className="fixed top-14 left-0 right-0 z-30 h-1 bg-secondary/80 overflow-hidden pointer-events-none">
       <div
-        className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 transition-all duration-100 ease-out"
+        className="h-full bg-gradient-to-r from-primary via-indigo-500 to-violet-500 transition-all duration-100 ease-out shadow-xs"
         style={{ width: `${progress}%` }}
       />
     </div>

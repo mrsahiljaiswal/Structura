@@ -53,7 +53,7 @@ export function StatCard({
         </div>
 
         {/* Icon Block */}
-        <div className={cn("rounded-xl p-2.5 bg-zinc-900 border border-border/40 text-indigo-400 shadow-inner", colorClass)}>
+        <div className="rounded-xl p-2.5 bg-accent border border-indigo-500/20 text-primary shadow-xs">
           <Icon className="h-5 w-5" />
         </div>
       </div>

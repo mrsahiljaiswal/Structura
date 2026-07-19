@@ -6,11 +6,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { ReaderLayout } from "@/components/layouts/reader-layout";
-import { StickyProgress, MarkdownRenderer, NotesPanel, PracticeQuiz } from "@/components/reader";
+import { StickyProgress, MarkdownRenderer, NotesPanel, PracticeQuiz, AudioNarrator } from "@/components/reader";
 import { useCourses } from "@/hooks/use-courses";
 import { coursePersistence } from "@/lib/services/course-service";
 import { Button } from "@/components/ui/button";
@@ -43,11 +43,26 @@ interface Lesson {
 export default function LessonPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const lessonId = params?.lessonId as string;
+  const rawHighlight = searchParams?.get("highlight") || null;
 
   const [saving, setSaving] = useState(false);
   const [readTimeSec, setReadTimeSec] = useState(0);
+  const [activeHighlight, setActiveHighlight] = useState<string | null>(rawHighlight);
+  const [spokenSentence, setSpokenSentence] = useState<string | null>(null);
+
+  // Auto-clear highlight after 4 seconds
+  useEffect(() => {
+    if (rawHighlight) {
+      setActiveHighlight(rawHighlight);
+      const timer = setTimeout(() => {
+        setActiveHighlight(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [rawHighlight]);
 
   // 1. Fetch lesson details via React Query
   const { data: lesson, isLoading, isError, error } = useQuery<Lesson>({
@@ -244,26 +259,40 @@ export default function LessonPage() {
           </div>
         </section>
 
+        {/* Audio Narration Bar */}
+        {lesson.content && (
+          <AudioNarrator
+            text={lesson.content}
+            title={lesson.title}
+            lessonId={lessonId}
+            onSentenceChange={(s) => setSpokenSentence(s)}
+          />
+        )}
+
         {/* Prose Center: Reading content */}
-        <section className="prose prose-invert max-w-none">
+        <section className="prose max-w-none">
           {lesson.content ? (
-            <MarkdownRenderer content={lesson.content} />
+            <MarkdownRenderer
+              content={lesson.content}
+              highlightQuery={activeHighlight}
+              narrationSentence={spokenSentence}
+            />
           ) : (
-            <p className="text-zinc-500 italic">No summary content generated for this lesson.</p>
+            <p className="text-muted-foreground italic">No summary content generated for this lesson.</p>
           )}
         </section>
 
         {/* Key Takeaways list */}
         {lesson.key_takeaways && lesson.key_takeaways.length > 0 && (
-          <section className="rounded-2xl border border-border/30 bg-zinc-900/10 p-6 space-y-4 text-left">
+          <section className="rounded-2xl border border-border bg-card shadow-xs p-6 space-y-4 text-left">
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <Sparkles className="h-4.5 w-4.5 text-indigo-400" />
+              <Sparkles className="h-4.5 w-4.5 text-primary" />
               <span>Key Takeaways</span>
             </h3>
-            <ul className="space-y-2 list-none pl-0">
+            <ul className="space-y-2.5 list-none pl-0">
               {lesson.key_takeaways.map((takeaway, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-sm text-zinc-300 leading-relaxed">
-                  <span className="text-indigo-400 mt-1 select-none">•</span>
+                <li key={idx} className="flex items-start gap-2.5 text-sm font-medium text-foreground leading-relaxed">
+                  <span className="text-primary font-bold mt-0.5 select-none">•</span>
                   <span>{takeaway}</span>
                 </li>
               ))}

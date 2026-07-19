@@ -36,10 +36,23 @@ async def get_user_progress(
             study_time_by_day={},
             quiz_scores={},
             lesson_notes={},
+            streak_count=0,
+            streak_last_date=None,
+            chat_history=[],
         )
         db.add(progress)
         await db.commit()
         await db.refresh(progress)
+    else:
+        if progress.pinned_courses is None: progress.pinned_courses = []
+        if progress.favorite_courses is None: progress.favorite_courses = []
+        if progress.completed_lessons is None: progress.completed_lessons = []
+        if progress.study_time_total is None: progress.study_time_total = 0
+        if progress.study_time_by_day is None: progress.study_time_by_day = {}
+        if progress.quiz_scores is None: progress.quiz_scores = {}
+        if progress.lesson_notes is None: progress.lesson_notes = {}
+        if progress.streak_count is None or progress.streak_count == 0: progress.streak_count = 1
+        if progress.chat_history is None: progress.chat_history = []
 
     return progress
 
@@ -69,6 +82,9 @@ async def update_user_progress(
     progress.study_time_by_day = progress_data.study_time_by_day
     progress.quiz_scores = progress_data.quiz_scores
     progress.lesson_notes = progress_data.lesson_notes
+    progress.streak_count = progress_data.streak_count
+    progress.streak_last_date = progress_data.streak_last_date
+    progress.chat_history = progress_data.chat_history
 
     await db.commit()
     await db.refresh(progress)

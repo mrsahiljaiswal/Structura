@@ -8,106 +8,121 @@
    1. Light Theme Settings (Fallback / Default)
    ========================================================================== */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --background: oklch(0.99 0.01 250);
-  --foreground: oklch(0.12 0.02 250);
+  /* Backgrounds */
+  --background: oklch(0.985 0.004 95);          /* #FAFAF8 Warm Off-White */
+  --foreground: oklch(0.19 0.02 260);           /* #1E293B Dark Slate */
 
-  --card: oklch(0.97 0.01 250);
-  --card-foreground: oklch(0.12 0.02 250);
+  --card: oklch(1 0 0);                         /* #FFFFFF Pure White */
+  --card-foreground: var(--foreground);
 
-  --popover: oklch(0.97 0.01 250);
-  --popover-foreground: oklch(0.12 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.55 0.20 280); /* Muted Blue-Indigo */
-  --primary-foreground: oklch(0.99 0 0);
+  /* Brand */
+  --primary: oklch(0.58 0.22 274);              /* #6366F1 Electric Indigo */
+  --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.92 0.01 250);
-  --secondary-foreground: oklch(0.12 0.02 250);
+  /* Surface */
+  --secondary: oklch(0.965 0.008 260);          /* #F5F7FB Rich Secondary */
+  --secondary-foreground: var(--foreground);
 
-  --muted: oklch(0.92 0.01 250);
-  --muted-foreground: oklch(0.45 0.02 250);
+  --muted: oklch(0.972 0.004 260);              /* #F8FAFC Muted */
+  --muted-foreground: oklch(0.50 0.025 260);    /* #64748B Muted Text */
 
-  --accent: oklch(0.92 0.01 250);
-  --accent-foreground: oklch(0.12 0.02 250);
+  /* Accent */
+  --accent: oklch(0.95 0.02 274);               /* #EEF2FF Faint Indigo Tint */
+  --accent-foreground: oklch(0.25 0.04 274);
 
-  --destructive: oklch(0.60 0.18 28);
-  --destructive-foreground: oklch(0.99 0 0);
+  /* Status */
+  --destructive: oklch(0.60 0.23 25);           /* #EF4444 */
+  --destructive-foreground: oklch(1 0 0);
 
-  --border: oklch(0.88 0.01 250);
-  --input: oklch(0.88 0.01 250);
-  --ring: oklch(0.55 0.20 280 / 30%);
+  --success: oklch(0.72 0.18 155);             /* Emerald */
+  --warning: oklch(0.80 0.17 85);              /* Amber */
+  --info: oklch(0.68 0.18 240);                /* Blue */
+  --error: oklch(0.65 0.22 25);                /* Red */
 
-  --chart-1: oklch(0.60 0.18 280);
-  --chart-2: oklch(0.55 0.15 160);
-  --chart-3: oklch(0.40 0.10 220);
-  --chart-4: oklch(0.75 0.15 80);
-  --chart-5: oklch(0.70 0.15 60);
+  --border: oklch(0.92 0.004 260);              /* #E8EAED Very Subtle Border */
+  --input: oklch(0.92 0.004 260);
+  --ring: oklch(0.58 0.22 274 / 35%);
 
-  --sidebar: oklch(0.97 0.01 250);
-  --sidebar-foreground: oklch(0.12 0.02 250);
-  --sidebar-primary: oklch(0.55 0.20 280);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.92 0.01 250);
-  --sidebar-accent-foreground: oklch(0.12 0.02 250);
-  --sidebar-border: oklch(0.88 0.01 250);
-  --sidebar-ring: oklch(0.55 0.20 280 / 35%);
+  /* Charts */
+  --chart-1: oklch(0.58 0.22 274);   /* Indigo */
+  --chart-2: oklch(0.66 0.16 190);   /* Cyan */
+  --chart-3: oklch(0.67 0.16 145);   /* Emerald */
+  --chart-4: oklch(0.76 0.17 85);    /* Amber */
+  --chart-5: oklch(0.66 0.20 30);    /* Coral */
+
+  /* Sidebar */
+  --sidebar: oklch(0.992 0.002 260); /* #FCFCFD */
+  --sidebar-foreground: var(--foreground);
+
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+
+  --sidebar-accent: oklch(0.96 0.015 274);
+  --sidebar-accent-foreground: var(--foreground);
+
+  --sidebar-border: oklch(0.92 0.004 260);
+  --sidebar-ring: var(--ring);
 }
 
-/* ==========================================================================
-   2. Dark Theme Settings (Main Premium Theme)
-   ========================================================================== */
 .dark {
-  --background: oklch(0.08 0.01 250); /* Deep premium slate-black */
-  --foreground: oklch(0.95 0.01 250); /* High-contrast soft white */
+  --background: oklch(0.14 0.015 260);          /* #0B1120 Layered Deep Dark */
+  --foreground: oklch(0.97 0.006 260);          /* #F8FAFC Soft White */
 
-  --card: oklch(0.12 0.02 250); /* Dark slate glass backing */
-  --card-foreground: oklch(0.95 0.01 250);
+  --card: oklch(0.18 0.015 260);                /* Elevated Card Surface */
+  --card-foreground: var(--foreground);
 
-  --popover: oklch(0.11 0.01 250);
-  --popover-foreground: oklch(0.95 0.01 250);
+  --popover: oklch(0.18 0.015 260);
+  --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.60 0.22 280); /* Electric Indigo */
-  --primary-foreground: oklch(0.98 0.01 250);
+  --primary: oklch(0.68 0.22 274);              /* Brighter Electric Indigo */
+  --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.15 0.02 250);
-  --secondary-foreground: oklch(0.95 0.01 250);
+  --secondary: oklch(0.22 0.012 260);
+  --secondary-foreground: var(--foreground);
 
-  --muted: oklch(0.14 0.01 250);
-  --muted-foreground: oklch(0.55 0.01 250);
+  --muted: oklch(0.21 0.012 260);
+  --muted-foreground: oklch(0.72 0.012 260);
 
-  --accent: oklch(0.15 0.02 250);
-  --accent-foreground: oklch(0.95 0.01 250);
+  --accent: oklch(0.23 0.018 274);
+  --accent-foreground: var(--foreground);
 
-  --destructive: oklch(0.62 0.20 28);
-  --destructive-foreground: oklch(0.98 0.01 250);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
 
-  --border: oklch(0.18 0.02 250); /* Subtle glass dividers */
-  --input: oklch(0.18 0.02 250);
-  --ring: oklch(0.60 0.22 280 / 25%);
+  --success: oklch(0.70 0.18 155);
+  --warning: oklch(0.78 0.17 85);
+  --info: oklch(0.66 0.18 240);
+  --error: oklch(0.65 0.22 25);
 
-  --chart-1: oklch(0.60 0.22 280);
-  --chart-2: oklch(0.65 0.16 160);
-  --chart-3: oklch(0.70 0.15 80);
-  --chart-4: oklch(0.55 0.20 300);
-  --chart-5: oklch(0.62 0.20 16);
+  --border: oklch(0.28 0.015 260);
+  --input: oklch(0.28 0.015 260);
 
-  --sidebar: oklch(0.09 0.01 250); /* Sleek, darker sidebar offset */
-  --sidebar-foreground: oklch(0.95 0.01 250);
-  --sidebar-primary: oklch(0.60 0.22 280);
-  --sidebar-primary-foreground: oklch(0.98 0.01 250);
-  --sidebar-accent: oklch(0.14 0.02 250);
-  --sidebar-accent-foreground: oklch(0.95 0.01 250);
-  --sidebar-border: oklch(0.15 0.02 250);
-  --sidebar-ring: oklch(0.60 0.22 280 / 30%);
+  --ring: oklch(0.68 0.22 274 / 40%);
+
+  --sidebar: oklch(0.16 0.014 260);
+  --sidebar-foreground: var(--foreground);
+
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: white;
+
+  --sidebar-accent: oklch(0.22 0.014 260);
+  --sidebar-accent-foreground: var(--foreground);
+
+  --sidebar-border: oklch(0.26 0.014 260);
+  --sidebar-ring: var(--ring);
 }
 
 /* ==========================================================================
    3. High Contrast Theme Settings
    ========================================================================== */
 .high-contrast {
-  --background: oklch(0 0 0); /* Pure black */
-  --foreground: oklch(1 0 0); /* Pure white */
+  --background: oklch(0 0 0);
+  --foreground: oklch(1 0 0);
 
   --card: oklch(0 0 0);
   --card-foreground: oklch(1 0 0);
@@ -130,7 +145,7 @@
   --destructive: oklch(0.55 0.22 28);
   --destructive-foreground: oklch(1 0 0);
 
-  --border: oklch(1 0 0); /* Solid white border */
+  --border: oklch(1 0 0);
   --input: oklch(1 0 0);
   --ring: oklch(1 0 0);
 
@@ -168,6 +183,11 @@
 
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-error: var(--error);
 
   --color-border: var(--border);
   --color-input: var(--input);

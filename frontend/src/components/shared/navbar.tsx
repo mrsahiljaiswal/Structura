@@ -18,7 +18,7 @@ interface NavbarProps {
 
 export function Navbar({ onSearchTrigger, breadcrumbs = [] }: NavbarProps) {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-30 h-16 border-b border-border/40 bg-zinc-950/80 backdrop-blur-md px-6 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card/90 backdrop-blur-md px-6 flex items-center justify-between shadow-xs">
       {/* Left: Branding & Breadcrumbs */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
@@ -70,17 +70,6 @@ export function Navbar({ onSearchTrigger, breadcrumbs = [] }: NavbarProps) {
 
         {/* Theme Cycling */}
         <ThemeSwitcher />
-
-        {/* Alerts / Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-xl relative text-zinc-400 hover:text-foreground"
-          aria-label="View notifications"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-zinc-950 animate-pulse" />
-        </Button>
 
         {/* Clerk Profile Menu */}
         <div className="flex h-9 w-9 items-center justify-center border border-border/40 rounded-xl overflow-hidden shadow-inner">

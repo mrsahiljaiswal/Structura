@@ -4,6 +4,7 @@
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@clerk/nextjs";
 import api from "@/lib/axios";
 import { coursePersistence } from "@/lib/services/course-service";
 
@@ -13,8 +14,8 @@ export interface Lesson {
   position: number;
   content?: string;
   summary?: string;
-  examples?: any[];
-  key_takeaways?: any[];
+  examples?: unknown[] | null;
+  key_takeaways?: unknown[] | null;
 }
 
 export interface Chapter {
@@ -35,22 +36,31 @@ export interface Course {
 
 export function useCourses() {
   const queryClient = useQueryClient();
+  const { user } = useUser();
+  const userId = user?.id || "anonymous";
 
   const { data: courses = [], isLoading, isError } = useQuery<Course[]>({
-    queryKey: ["courses"],
+    queryKey: ["courses", userId],
     queryFn: async () => {
       const res = await api.get("/api/v1/courses");
       return res.data;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 5, // 5 minutes cache per user
   });
 
   const addCourse = (id: string) => {
     queryClient.invalidateQueries({ queryKey: ["courses"] });
   };
 
-  const removeCourse = (id: string) => {
-    queryClient.invalidateQueries({ queryKey: ["courses"] });
+  const removeCourse = async (id: string) => {
+    try {
+      await api.delete(`/api/v1/courses/${id}`);
+      await coursePersistence.unpinCourse(id);
+      await coursePersistence.unfavoriteCourse(id);
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+    } catch (err) {
+      console.error("Failed to delete course:", err);
+    }
   };
 
   return {

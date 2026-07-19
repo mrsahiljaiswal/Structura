@@ -9,11 +9,13 @@ import React from "react";
 import { useUser } from "@clerk/nextjs";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
+import { ProjectPurposeHero } from "@/components/dashboard/project-purpose-hero";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { RecentUploadsSection } from "@/components/dashboard/recent-uploads";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useCourses } from "@/hooks/use-courses";
+import { useUserProgress } from "@/hooks/use-user-progress";
 import { coursePersistence } from "@/lib/services/course-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -33,10 +35,13 @@ import {
 export default function DashboardPage() {
   const { isLoaded, user } = useUser();
   const router = useRouter();
-  const { courses, isLoading, isError } = useCourses();
+  const { courses, isLoading: isCoursesLoading } = useCourses();
+  const { progress, avgQuizScore, isLoading: isProgressLoading } = useUserProgress();
+
+  const isLoading = !isLoaded || isCoursesLoading || isProgressLoading;
 
   // Loading skeleton layout
-  if (!isLoaded || isLoading) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="space-y-8 animate-pulse">
@@ -56,23 +61,26 @@ export default function DashboardPage() {
     );
   }
 
-  // Calculate dynamic stats
-  const totalCourses = courses.length;
-  const completedLessonsCount = coursePersistence.getCompletedLessons().length;
-  
-  // Calculate total study time dynamically based on word counts of completed lessons
-  let totalStudyTimeSec = 0;
-  courses.forEach((course) => {
-    course.chapters.forEach((chapter) => {
-      chapter.lessons.forEach((lesson) => {
-        if (coursePersistence.isLessonCompleted(lesson.id)) {
-          const wordCount = lesson.content ? lesson.content.split(/\s+/).length : 0;
-          const readingMinutes = Math.max(1, Math.round(wordCount / 200));
-          totalStudyTimeSec += readingMinutes * 60;
-        }
+  // Calculate dynamic stats from server-persisted user progress
+  const totalCourses = courses ? courses.length : 0;
+  const completedLessonsSet = new Set(progress?.completed_lessons || []);
+  const completedLessonsCount = completedLessonsSet.size;
+
+  // Calculate study time in hours
+  let totalStudyTimeSec = progress?.study_time_total || 0;
+  if (totalStudyTimeSec === 0 && courses) {
+    courses.forEach((course) => {
+      course.chapters?.forEach((chapter) => {
+        chapter.lessons?.forEach((lesson) => {
+          if (completedLessonsSet.has(lesson.id)) {
+            const wordCount = lesson.content ? lesson.content.split(/\s+/).length : 200;
+            const readingMinutes = Math.max(1, Math.round(wordCount / 200));
+            totalStudyTimeSec += readingMinutes * 60;
+          }
+        });
       });
     });
-  });
+  }
   const totalStudyTimeHr = parseFloat((totalStudyTimeSec / 3600).toFixed(1));
 
   // Quick Action Buttons
@@ -86,8 +94,11 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        {/* Welcome Banner Banner */}
-        <WelcomeBanner fullName={user?.fullName} />
+        {/* Welcome Banner */}
+        <WelcomeBanner fullName={user?.fullName} streakCount={progress?.streak_count || 0} />
+
+        {/* Project Purpose Visual Flow Hero (Center of Attraction) */}
+        <ProjectPurposeHero />
 
         {/* Learning Analytics Stat Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -117,11 +128,11 @@ export default function DashboardPage() {
           />
           <StatCard
             label="Avg Quiz Score"
-            value={`${coursePersistence.getAvgQuizScore()}%`}
+            value={`${avgQuizScore}%`}
             change="Based on completed quizzes"
             icon={TrendingUp}
             colorClass="text-amber-400"
-            chartData={[82, 85, 84, 87, 88, 87, coursePersistence.getAvgQuizScore() || 88]}
+            chartData={[82, 85, 84, 87, 88, 87, avgQuizScore || 88]}
           />
         </div>
 
@@ -129,7 +140,7 @@ export default function DashboardPage() {
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Left: Pinned / Continue Reading Section */}
           <div className="lg:col-span-2 space-y-8">
-            <Card className="border border-border/40">
+            <Card className="border border-border bg-card shadow-xs">
               <CardHeader>
                 <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                   Continue Learning
@@ -143,25 +154,25 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={c.id}
-                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-border/20 bg-zinc-900/10 p-4 hover:bg-zinc-900/30 hover:border-border/40 transition-all duration-300"
+                        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-border bg-secondary/50 p-4.5 hover:bg-secondary hover:border-border/80 transition-all duration-300 shadow-xs"
                       >
                         <div className="space-y-1">
-                          <p className="text-xs font-semibold text-indigo-400 uppercase tracking-wide">
+                          <p className="text-xs font-bold text-primary uppercase tracking-wide">
                             {c.title}
                           </p>
                           <p className="text-sm font-bold text-foreground">
                             {firstLesson ? firstLesson.title : "Introduction"}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground font-medium">
                             Estimated remaining: {c.estimated_time || "4.5 hours"}
                           </p>
                         </div>
                         {firstLesson && (
                           <Button
                             onClick={() => router.push(`/dashboard/lesson/${firstLesson.id}`)}
-                            variant="glass"
+                            variant="default"
                             size="sm"
-                            className="w-full sm:w-auto shrink-0 gap-1.5"
+                            className="w-full sm:w-auto shrink-0 gap-1.5 shadow-xs font-semibold"
                           >
                             <Play className="h-3.5 w-3.5 fill-current" />
                             <span>Resume</span>
@@ -190,9 +201,9 @@ export default function DashboardPage() {
                   <button
                     key={action.label}
                     onClick={() => router.push(action.href)}
-                    className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border/30 bg-zinc-900/10 text-center hover:border-border/80 hover:bg-zinc-900/30 active:scale-98 transition-all duration-200 cursor-pointer"
+                    className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-card text-center hover:border-border hover:bg-accent/40 active:scale-98 transition-all duration-200 cursor-pointer shadow-xs"
                   >
-                    <div className={`rounded-xl p-2.5 bg-zinc-900 border border-border/40 shadow-inner mb-3 ${action.style}`}>
+                    <div className="rounded-xl p-2.5 bg-accent border border-indigo-500/20 text-primary mb-3">
                       <Icon className="h-5 w-5" />
                     </div>
                     <span className="text-sm font-semibold text-foreground">{action.label}</span>

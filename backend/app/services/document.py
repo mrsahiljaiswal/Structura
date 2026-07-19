@@ -57,12 +57,14 @@ class DocumentService:
         self,
         filename: str,
         file_content: bytes,
+        user_id: str = None,
     ) -> DocumentUploadResponse:
         """Save an uploaded file and create a document record.
         
         Args:
             filename: The original filename
             file_content: The file content bytes
+            user_id: Optional user ID for course ownership
             
         Returns:
             DocumentUploadResponse with document metadata
@@ -118,7 +120,7 @@ class DocumentService:
             final_course = pipeline.run(pdf_path=str(file_path), course_title=filename)
 
             logger.info("Persisting course structure and lessons to database...")
-            course_id = persist_course_sync(metadata.document_id, metadata.stored_filename, final_course)
+            course_id = persist_course_sync(metadata.document_id, metadata.stored_filename, final_course, user_id=user_id)
             logger.info(f"Course created with ID: {course_id}")
 
             self.repository.update_status(metadata.document_id, DocumentStatus.COURSE_GENERATED.value)

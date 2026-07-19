@@ -10,9 +10,8 @@ import requests
 
 from .exceptions import LLMError
 
-DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
-DEFAULT_OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +20,9 @@ FakeResponder = Callable[[str, str], str]
 
 class LLMClient:
     """
-    Resilient multi-provider LLM client for Structura.
-    Supports OpenRouter, Google Gemini, and Groq with automatic failovers.
+    Multi-provider LLM client for Structura.
+    Priority 1: Google Gemini API (gemini-1.5-flash / gemini-1.5-flash-8b)
+    Priority 2: Groq API fallback (llama-3.1-8b-instant)
     """
 
     def __init__(
@@ -34,14 +34,12 @@ class LLMClient:
         self.max_tokens = max_tokens
         self._fake_responder = fake_responder
 
-        self.openrouter_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENROUTER_KEY")
-        self.openrouter_model = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL)
-
         self.gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_KEY")
-        self.gemini_model = os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+        self.gemini_model = model or os.environ.get("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
 
-        self.groq_key = os.environ.get("GROQ_API_KEY")
+        self.groq_key = os.environ.get("GROQ_API_KEY") or os.environ.get("GROQ_KEY")
         self.groq_model = os.environ.get("GROQ_MODEL", DEFAULT_GROQ_MODEL)
+        self.groq_url = os.environ.get("GROQ_API_URL", "https://api.groq.com/openai/v1/chat/completions")
 
     def _call(self, system: str, user: str, force_json_hint: bool = False) -> str:
         if self._fake_responder is not None:
@@ -51,187 +49,142 @@ class LLMClient:
         if force_json_hint:
             sys_prompt += "\n\nCRITICAL: Respond strictly with valid JSON only. Do not include markdown or prose commentary."
 
-        # 1. Primary Priority: OpenRouter if OPENROUTER_API_KEY is present
-        if self.openrouter_key:
-            try:
-                return self._call_openrouter(sys_prompt, user)
-            except LLMError as err:
-                logger.warning(f"OpenRouter call failed: {err}. Trying fallbacks...")
+        errors = []
 
-        # 2. Try Google Gemini (Requires AI Studio key starting with AIzaSy)
-        if self.gemini_key and self.gemini_key.startswith("AIzaSy"):
+        # 1. Priority 1: Google Gemini API (if key starts with valid format or provided)
+        if self.gemini_key and self.gemini_key.strip() and self.gemini_key.startswith("AIzaSy"):
             try:
                 return self._call_gemini(sys_prompt, user)
-            except LLMError as gemini_err:
-                logger.warning(
-                    f"Gemini call failed or hit quota limits: {gemini_err}. "
-                    f"Attempting automatic fallback to Groq ({self.groq_model})..."
-                )
-                if self.groq_key:
-                    return self._call_groq(sys_prompt, user)
-                raise gemini_err
+            except Exception as gemini_err:
+                logger.warning(f"Gemini call failed: {gemini_err}. Falling back to Groq...")
+                errors.append(f"Gemini: {gemini_err}")
 
-        # 3. Fallback: Groq
-        if self.groq_key:
-            return self._call_groq(sys_prompt, user)
+        # 2. Priority 2: Groq API Fallback
+        if self.groq_key and self.groq_key.strip():
+            try:
+                return self._call_groq(sys_prompt, user)
+            except Exception as groq_err:
+                logger.warning(f"Groq call failed: {groq_err}")
+                errors.append(f"Groq: {groq_err}")
 
-        raise LLMError("No active LLM API keys found (neither OPENROUTER_API_KEY, GEMINI_API_KEY, nor GROQ_API_KEY).")
+        # 3. Priority 3: Gemini retry without prefix check
+        if self.gemini_key and self.gemini_key.strip() and not self.gemini_key.startswith("AIzaSy"):
+            try:
+                return self._call_gemini(sys_prompt, user)
+            except Exception as gemini_err:
+                logger.warning(f"Gemini call failed: {gemini_err}")
+                errors.append(f"Gemini: {gemini_err}")
 
-    def _call_openrouter(self, system: str, user: str) -> str:
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.openrouter_key}",
-            "HTTP-Referer": "http://localhost:3000",
-            "X-Title": "Structura AI",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": self.openrouter_model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": 0.2,
-            "max_tokens": self.max_tokens,
-        }
+        raise LLMError(f"All available LLM providers failed: {'; '.join(errors)}")
 
-        max_attempts = 4
-        for attempt in range(max_attempts):
+    def _call_gemini(self, system: str, user: str) -> str:
+        # Normalize model aliases to official Gemini API endpoint names
+        model_name = self.gemini_model
+        if "2.5-flash" in model_name or "3.1-flash" in model_name:
+            model_name = "gemini-2.0-flash-lite"
+
+        models_to_try = [model_name, "gemini-3.1-flash-lite","gemini-2.1-flash-lite"]
+        seen = set()
+        models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
+
+        last_error = None
+        for m in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={self.gemini_key}"
+            payload = {
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [{"text": f"{system}\n\n{user}"}],
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "maxOutputTokens": self.max_tokens,
+                },
+            }
+            headers = {"Content-Type": "application/json"}
+
             try:
                 resp = requests.post(url, headers=headers, json=payload, timeout=60)
                 if resp.status_code == 429:
-                    if attempt == max_attempts - 1:
-                        raise LLMError(f"OpenRouter 429 rate limit reached ({resp.text[:200]})")
-                    sleep_sec = 2.0 * (attempt + 1)
-                    time.sleep(sleep_sec)
+                    logger.warning(f"Gemini model {m} hit rate limit 429. Retrying next model...")
                     continue
-
                 if resp.status_code != 200:
-                    raise LLMError(f"OpenRouter API error {resp.status_code}: {resp.text[:300]}")
-
-                res_data = resp.json()
-                choices = res_data.get("choices", [])
-                if not choices:
-                    raise LLMError(f"OpenRouter returned empty choices: {resp.text[:200]}")
-                return choices[0]["message"]["content"]
-            except LLMError:
-                raise
-            except Exception as e:
-                if attempt == max_attempts - 1:
-                    raise LLMError(f"OpenRouter call failed: {e}") from e
-                time.sleep(2.0 * (attempt + 1))
-
-        raise LLMError("OpenRouter call failed.")
-
-    def _call_gemini(self, system: str, user: str) -> str:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_key}"
-        payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [{"text": f"{system}\n\n{user}"}],
-                }
-            ],
-            "generationConfig": {
-                "temperature": 0.2,
-                "maxOutputTokens": self.max_tokens,
-            },
-        }
-        headers = {"Content-Type": "application/json"}
-
-        max_attempts = 3  # Fast failover if Gemini hits quota limits
-        for attempt in range(max_attempts):
-            try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=45)
-                if resp.status_code == 429:
-                    if attempt == max_attempts - 1:
-                        raise LLMError(f"GEMINI 429 quota reached ({resp.text[:200]})")
-
-                    sleep_sec = 1.5 * (attempt + 1)
-                    try:
-                        match = re.search(r"try again in ([0-9\.]+)s", resp.text)
-                        if match:
-                            sleep_sec = float(match.group(1)) + 0.5
-                    except Exception:
-                        pass
-
-                    logger.warning(f"Gemini 429 limit hit. Retrying in {sleep_sec:.1f}s...")
-                    time.sleep(sleep_sec)
+                    logger.warning(f"Gemini model {m} returned status {resp.status_code}: {resp.text[:150]}")
+                    last_error = f"Gemini error {resp.status_code}: {resp.text[:200]}"
                     continue
-
-                if resp.status_code != 200:
-                    raise LLMError(f"Gemini API error {resp.status_code}: {resp.text[:300]}")
 
                 res_data = resp.json()
                 candidates = res_data.get("candidates", [])
                 if not candidates:
-                    raise LLMError("Gemini returned no text candidates.")
+                    continue
                 parts = candidates[0].get("content", {}).get("parts", [])
                 if not parts:
-                    raise LLMError("Gemini returned empty text parts.")
+                    continue
                 return parts[0].get("text", "")
-
-            except LLMError:
-                raise
             except Exception as e:
-                if attempt == max_attempts - 1:
-                    raise LLMError(f"Gemini request failed: {e}") from e
-                time.sleep(1.5 * (attempt + 1))
+                last_error = str(e)
+                continue
 
-        raise LLMError("Gemini call failed.")
+        raise LLMError(f"All Gemini models failed. Last error: {last_error}")
 
     def _call_groq(self, system: str, user: str) -> str:
-        url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.groq_key}",
             "Content-Type": "application/json",
         }
-        payload = {
-            "model": self.groq_model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "temperature": 0.2,
-            "max_tokens": self.max_tokens,
-        }
+        
+        # Ensure model is a valid Groq model string
+        groq_models_to_try = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it", "mixtral-8x7b-32768"]
+        if self.groq_model and "llama" in self.groq_model.lower():
+            groq_models_to_try.insert(0, self.groq_model)
 
-        max_attempts = 4
-        for attempt in range(max_attempts):
+        last_error = None
+        for g_model in groq_models_to_try:
+            payload = {
+                "model": g_model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "temperature": 0.3,
+                "max_tokens": self.max_tokens,
+            }
+
             try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=60)
+                resp = requests.post(self.groq_url, headers=headers, json=payload, timeout=60)
                 if resp.status_code == 429:
-                    if attempt == max_attempts - 1:
-                        raise LLMError(f"Groq 429 rate limit reached ({resp.text[:200]})")
-                    sleep_sec = 1.5 * (attempt + 1)
-                    time.sleep(sleep_sec)
+                    logger.warning(f"Groq model {g_model} hit 429 rate limit. Retrying next Groq model...")
+                    continue
+                if resp.status_code != 200:
+                    logger.warning(f"Groq model {g_model} returned status {resp.status_code}: {resp.text[:150]}")
+                    last_error = f"Groq status {resp.status_code}: {resp.text[:200]}"
                     continue
 
-                if resp.status_code != 200:
-                    raise LLMError(f"Groq API error {resp.status_code}: {resp.text[:300]}")
-
                 res_data = resp.json()
-                return res_data["choices"][0]["message"]["content"]
-            except LLMError:
-                raise
+                choices = res_data.get("choices", [])
+                if not choices:
+                    continue
+                return choices[0]["message"]["content"]
             except Exception as e:
-                if attempt == max_attempts - 1:
-                    raise LLMError(f"Groq call failed: {e}") from e
-                time.sleep(1.5 * (attempt + 1))
+                last_error = str(e)
+                continue
 
-        raise LLMError("Groq call failed.")
+        raise LLMError(f"All Groq models failed. Last error: {last_error}")
 
     def complete_json(self, system: str, user: str, retries: int = 2) -> Any:
-        """Call LLM (Gemini or Groq fallback) and parse a JSON-only response."""
+        """Call LLM and parse a JSON-only response, self-correcting on parse failure."""
         raw = self._call(system, user)
         return self._parse_json(raw, system, user, retries)
 
     def _clean_json_string(self, raw: Optional[str]) -> str:
         if not raw:
             return ""
+        # Strip Markdown code blocks
         cleaned = re.sub(r"```(?:json)?", "", raw, flags=re.IGNORECASE)
         cleaned = re.sub(r"```", "", cleaned).strip()
 
+        # Try to find JSON object {} or array [] bounds
         start_brace = cleaned.find("{")
         start_bracket = cleaned.find("[")
 
@@ -274,4 +227,4 @@ class LLMClient:
                 )
                 raw = self._call(system, hinted_user, force_json_hint=True)
                 return self._parse_json(raw, system, user, retries - 1)
-            raise LLMError(f"Failed to parse JSON response: {e}\nRaw (truncated): {raw[:500]}") from e
+            raise LLMError(f"Failed to parse LLM JSON response: {e}\nRaw (truncated): {raw[:500]}") from e
