@@ -53,10 +53,30 @@ export function FloatingChatbot() {
   const userId = user?.id ?? null;
 
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("structura-floating-chat-messages");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    return [];
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync messages history to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined" && messages.length > 0) {
+      localStorage.setItem("structura-floating-chat-messages", JSON.stringify(messages));
+    }
+  }, [messages]);
 
   const [groundingMode, setGroundingMode] = useState<GroundingMode>("both");
   const [courses, setCourses] = useState<CourseSummary[]>([]);
@@ -212,6 +232,9 @@ export function FloatingChatbot() {
   const clearChat = () => {
     setMessages([]);
     setError(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("structura-floating-chat-messages");
+    }
     seedGreeting();
   };
 
@@ -231,7 +254,6 @@ export function FloatingChatbot() {
             aria-label="Open AI study tutor"
             className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition-transform hover:scale-105 hover:bg-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-300"
           >
-            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white" />
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
