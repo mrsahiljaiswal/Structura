@@ -28,6 +28,10 @@ from app.db.session import engine
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_logging()
+    logging.getLogger("pdfminer").setLevel(logging.WARNING)
+    logging.getLogger("pdfminer.psparser").setLevel(logging.WARNING)
+    logging.getLogger("pdfminer.pdfinterp").setLevel(logging.WARNING)
+    logging.getLogger("pdfplumber").setLevel(logging.WARNING)
     logger.info(
         "Starting %s [environment=%s, debug=%s]",
         settings.PROJECT_NAME,
