@@ -45,15 +45,27 @@ class ChatMessageInput(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
     course_id: Optional[str] = None
-    knowledge_mode: Literal["courses_only", "both", "web_only"] = "both"
+    knowledge_mode: Optional[str] = "both"
+    grounding_mode: Optional[str] = None
     chat_history: Optional[List[ChatMessageInput]] = []
+    history: Optional[List[ChatMessageInput]] = []
+
+    @property
+    def effective_knowledge_mode(self) -> str:
+        return self.grounding_mode or self.knowledge_mode or "both"
+
+    @property
+    def effective_chat_history(self) -> List[ChatMessageInput]:
+        return self.chat_history or self.history or []
 
 
 class ChatResponse(BaseModel):
     reply: str
+    response: str
     suggested_actions: Optional[List[str]] = []
     sources: Optional[List[str]] = []
     knowledge_mode: str = "both"
+    grounding_mode: str = "both"
 
 
 def calculate_semantic_score(query: str, target_text: str) -> float:
@@ -90,7 +102,7 @@ async def chat_with_tutor(
     x_user_id: Optional[str] = Header(None),
     db: AsyncSession = Depends(get_db),
 ):
-    mode = request.knowledge_mode or "both"
+    mode = request.effective_knowledge_mode
 
     # 1. Multi-Tenant DB Query: STRICTLY Filter Courses by Current User Account
     if x_user_id:
@@ -132,14 +144,17 @@ async def chat_with_tutor(
 
     is_system_cmd = any(k in request.message.lower() for k in ["quiz", "summary", "next lesson", "progress", "streak"])
     if mode == "courses_only" and top_score < 0.10 and not is_system_cmd:
+        refusal = (
+            f"⚠️ **Courses Only Mode Active**\n\n"
+            f"Your question **\"{request.message}\"** does not appear in your enrolled course materials.\n\n"
+            "💡 *To get answers from general knowledge, please switch the Knowledge Source toggle to **\"Courses + Web\"** or **\"Web Only\"**!*"
+        )
         return ChatResponse(
-            reply=(
-                f"⚠️ **Courses Only Mode Active**\n\n"
-                f"Your question **\"{request.message}\"** does not appear in your enrolled course materials.\n\n"
-                "💡 *To get answers from general knowledge, please switch the Knowledge Source toggle to **\"Courses + Web\"** or **\"Web Only\"**!*"
-            ),
+            reply=refusal,
+            response=refusal,
             suggested_actions=["Switch to Courses + Web", "Summarize my course", "Take a quiz"],
             knowledge_mode=mode,
+            grounding_mode=mode,
         )
 
     # 5. Extract Full Lesson Knowledge Context for Selected Course
@@ -212,9 +227,11 @@ async def chat_with_tutor(
 
         return ChatResponse(
             reply=cleaned_text,
+            response=cleaned_text,
             suggested_actions=["Explain step-by-step", "Take a 3-question quiz", "Summarize chapter"],
             sources=sources_used[:4],
             knowledge_mode=mode,
+            grounding_mode=mode,
         )
     except Exception as e:
 

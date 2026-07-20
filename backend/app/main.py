@@ -54,6 +54,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Shutting down %s", settings.PROJECT_NAME)
 
 
+from fastapi.responses import JSONResponse
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.PROJECT_NAME,
@@ -65,11 +67,26 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origin_regex=r".*",
+        allow_origins=[
+            "https://structura-psi.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "*",
+        ],
+        allow_origin_regex=r"https?://.*",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request, exc):
+        logger.error(f"Global unhandled error on {request.url.path}: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": str(exc) or "An internal server error occurred."},
+        )
 
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
