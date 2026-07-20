@@ -1,351 +1,376 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import {
-  Sparkles,
-  MessageSquare,
-  X,
-  Send,
-  Bot,
-  User,
-  Trash2,
-  ChevronDown,
-  BookOpen,
-  Zap,
-  Award,
-  HelpCircle,
-} from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import type { KeyboardEvent } from "react";
 import { useUser } from "@clerk/nextjs";
-import api from "@/lib/axios";
-import { useUserProgress } from "@/hooks/use-user-progress";
 import { MarkdownRenderer } from "@/components/reader/markdown-renderer";
 
-interface Message {
+type GroundingMode = "courses_only" | "both" | "web_only";
+
+interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  suggestedActions?: string[];
-  timestamp: string;
+  timestamp: number;
 }
 
-const DEFAULT_PROMPTS = [
-  { label: "What should I study next?", icon: BookOpen },
-  { label: "Summarize my progress & streaks", icon: Award },
-  { label: "Give me a quick quiz on my course", icon: Zap },
-  { label: "Explain a key concept from my lessons", icon: HelpCircle },
+interface CourseSummary {
+  id: string;
+  title: string;
+}
+
+interface ChatApiResponse {
+  reply?: string;
+  response?: string;
+  sources?: string[];
+  grounding_mode: GroundingMode;
+}
+
+interface ApiErrorBody {
+  detail?: string;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const GROUNDING_LABELS: Record<GroundingMode, { label: string; icon: string; hint: string }> = {
+  courses_only: { label: "Courses Only", icon: "📘", hint: "Answers strictly from your uploaded lessons" },
+  both: { label: "Courses + Web", icon: "🌐", hint: "Combines your course material with general knowledge" },
+  web_only: { label: "Web Only", icon: "✨", hint: "General knowledge, no course citations" },
+};
+
+const QUICK_ACTIONS = [
+  "What should I study next?",
+  "Summarize my progress",
+  "Take a quiz",
 ];
 
+function uid(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
 export function FloatingChatbot() {
-  const { isSignedIn } = useUser();
-  const { progress, clearChatHistory } = useUserProgress();
+  const { user } = useUser();
+  const userId = user?.id ?? null;
+
   const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [groundingMode, setGroundingMode] = useState<GroundingMode>("both");
+  const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const coursesLoadedRef = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (!isOpen || coursesLoadedRef.current || !userId) return;
+    coursesLoadedRef.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/courses`, {
+          headers: { "x-user-id": userId },
+        });
+        if (!res.ok) return;
+        const data: CourseSummary[] = await res.json();
+        setCourses(data);
+      } catch {
+        // Non-fatal fallback
+      }
+    })();
+  }, [isOpen, userId]);
+
+  const seedGreeting = useCallback(() => {
+    setMessages([
+      {
+        id: uid(),
+        role: "assistant",
+        content:
+          "Hi! I'm your Structura AI Tutor. Ask me anything about your courses, or use a quick action below to get started.",
+        timestamp: Date.now(),
+      },
+    ]);
   }, []);
 
-  const welcomeMessage: Message = {
-    id: "welcome-1",
-    role: "assistant",
-    content:
-      "👋 **Hello! I am Structura AI**, your course-grounded tutor.\n\nI have real-time access to your **published courses** and **account progress**. Ask me anything about your lessons, test scores, or what to study next!",
-    suggestedActions: [
-      "What should I study next?",
-      "Summarize my progress & streaks",
-      "Give me a quick quiz",
-    ],
-    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-  };
-
-  const [messages, setMessages] = useState<Message[]>([welcomeMessage]);
-
-  const chatHistoryStr = JSON.stringify(progress?.chat_history || []);
-
-  // Hydrate chat messages from PostgreSQL user progress safely
   useEffect(() => {
-    if (progress?.chat_history && progress.chat_history.length > 0) {
-      const dbMsgs: Message[] = progress.chat_history.map((m, idx) => ({
-        id: `db-${idx}`,
-        role: m.role as "user" | "assistant",
-        content: m.content,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      }));
-      setMessages([welcomeMessage, ...dbMsgs]);
-    }
-  }, [chatHistoryStr]);
+    if (isOpen && messages.length === 0) seedGreeting();
+  }, [isOpen, messages.length, seedGreeting]);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || isLoading) return;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+      if (!userId) {
+        setError("You must be signed in to chat with the tutor.");
+        return;
+      }
 
-  useEffect(() => {
-    if (isOpen) {
-      scrollToBottom();
-    }
-  }, [messages, isOpen]);
-
-  // Early return ONLY after all hooks have executed to comply with React Rules of Hooks
-  if (!mounted || !isSignedIn) return null;
-
-  const handleSend = async (textToSend?: string) => {
-    const query = (textToSend || input).trim();
-    if (!query || isLoading) return;
-
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: query,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    if (!textToSend) setInput("");
-    setIsLoading(true);
-
-    try {
-      // Format chat history for backend context
-      const chatHistory = messages
-        .filter((m) => m.id !== "welcome-1")
-        .map((m) => ({ role: m.role, content: m.content }));
-
-      const response = await api.post("/api/v1/chat", {
-        message: query,
-        chat_history: chatHistory,
-      });
-
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: response.data.reply || "I am analyzing your course progress. How can I help you today?",
-        suggestedActions: response.data.suggested_actions || [],
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      const userMessage: ChatMessage = {
+        id: uid(),
+        role: "user",
+        content: trimmed,
+        timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Chat Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: "⚠️ Sorry, I encountered a temporary connection issue. Please make sure your backend is running.",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      setMessages((prev) => [...prev, userMessage]);
+      setInput("");
+      setIsLoading(true);
+      setError(null);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/chat`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": userId,
+          },
+          body: JSON.stringify({
+            message: trimmed,
+            course_id: selectedCourseId || null,
+            knowledge_mode: groundingMode,
+            chat_history: messages.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+
+        if (!res.ok) {
+          const body: ApiErrorBody = await res.json().catch(() => ({} as ApiErrorBody));
+          throw new Error(body.detail || `Request failed with status ${res.status}`);
+        }
+
+        const data: ChatApiResponse = await res.json();
+        const replyText = data.reply || data.response || "No response received.";
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            role: "assistant",
+            content: replyText,
+            timestamp: Date.now(),
+          },
+        ]);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+        setError(message);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            role: "assistant",
+            content: `⚠️ ${message}`,
+            timestamp: Date.now(),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, userId, selectedCourseId, groundingMode, messages]
+  );
+
+  const handleSend = () => sendMessage(input);
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
-  const clearChat = async () => {
-    await clearChatHistory();
-    setMessages([
-      {
-        id: "welcome-1",
-        role: "assistant",
-        content: "Chat history cleared! How can I help with your courses today?",
-        suggestedActions: [
-          "What should I study next?",
-          "Summarize my progress & streaks",
-        ],
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      },
-    ]);
+  const clearChat = () => {
+    setMessages([]);
+    setError(null);
+    seedGreeting();
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] pointer-events-auto flex flex-col items-end print:hidden" data-chatbot-floating>
-      {/* Floating Chat Modal */}
-      {isOpen && (
-        <div className="mb-4 w-[90vw] sm:w-[420px] h-[580px] max-h-[80vh] flex flex-col rounded-2xl bg-popover text-popover-foreground border border-border shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
-          {/* Header */}
-          <div className="px-4 py-3 bg-card border-b border-border flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md">
-                  <Bot className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                  Structura AI Tutor
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-accent text-accent-foreground border border-indigo-500/20">
-                    Course-Grounded
-                  </span>
-                </h3>
-                <p className="text-[11px] text-muted-foreground">Connected to your account & courses</p>
-              </div>
-            </div>
+    <>
+      <style>{`
+        @media print {
+          .print\\:hidden, [data-chatbot-floating] { display: none !important; }
+        }
+      `}</style>
 
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={clearChat}
-                title="Clear Chat"
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                title="Close Chat"
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex gap-3 ${
-                  msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                }`}
-              >
-                {/* Avatar */}
-                <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-semibold ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-accent text-accent-foreground border border-indigo-500/20"
-                  }`}
+      <div data-chatbot-floating className="print:hidden fixed bottom-6 right-6 z-[9999]">
+        {!isOpen ? (
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            aria-label="Open AI study tutor"
+            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition-transform hover:scale-105 hover:bg-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-300"
+          >
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              className="h-6 w-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8-1.06 0-2.078-.163-3.024-.463L3 21l1.5-4.5C3.55 15.19 3 13.65 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"
+              />
+            </svg>
+          </button>
+        ) : (
+          <div className="flex h-[580px] w-[420px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-3 text-white">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">Structura AI Tutor</p>
+                <p className="truncate text-[11px] text-indigo-100">
+                  {GROUNDING_LABELS[groundingMode].hint}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={clearChat}
+                  title="Clear conversation"
+                  className="rounded-md p-1.5 text-indigo-100 hover:bg-white/10 hover:text-white cursor-pointer"
                 >
-                  {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  aria-label="Close chatbot"
+                  className="rounded-md p-1.5 text-indigo-100 hover:bg-white/10 hover:text-white cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
 
-                {/* Content */}
-                <div className="max-w-[82%] space-y-2 text-left">
+            {/* Controls */}
+            <div className="flex flex-col gap-2 border-b border-border bg-secondary/40 px-3 py-2">
+              <select
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              >
+                <option value="">All my courses</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+
+              <div className="grid grid-cols-3 gap-1">
+                {(Object.keys(GROUNDING_LABELS) as GroundingMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setGroundingMode(mode)}
+                    className={`truncate rounded-md px-1.5 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+                      groundingMode === mode
+                        ? "bg-indigo-600 text-white font-bold"
+                        : "bg-background text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    }`}
+                    title={GROUNDING_LABELS[mode].hint}
+                  >
+                    {GROUNDING_LABELS[mode].icon} {GROUNDING_LABELS[mode].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
+              {messages.map((m) => (
+                <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed border select-text ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground border-primary rounded-tr-none font-medium shadow-xs"
-                        : "bg-secondary text-foreground border-border rounded-tl-none shadow-xs"
+                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                      m.role === "user"
+                        ? "rounded-br-sm bg-indigo-600 text-white"
+                        : "rounded-bl-sm bg-secondary text-foreground"
                     }`}
                   >
-                    {msg.role === "assistant" ? (
-                      <MarkdownRenderer content={msg.content} />
+                    {m.role === "assistant" ? (
+                      <MarkdownRenderer content={m.content} />
                     ) : (
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                      <span className="whitespace-pre-wrap">{m.content}</span>
                     )}
-                    <span
-                      className={`block text-[10px] mt-1.5 ${
-                        msg.role === "user" ? "text-indigo-100/80" : "text-muted-foreground"
-                      }`}
-                    >
-                      {msg.timestamp}
-                    </span>
                   </div>
+                </div>
+              ))}
 
-                  {/* Action Chips */}
-                  {msg.suggestedActions && msg.suggestedActions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {msg.suggestedActions.map((action, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleSend(action)}
-                          className="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-accent hover:bg-accent/80 text-accent-foreground border border-indigo-500/20 transition-all text-left flex items-center gap-1 cursor-pointer"
-                        >
-                          <Sparkles className="w-3 h-3 text-primary shrink-0" />
-                          {action}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-secondary px-3 py-2">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )}
+              <div ref={messagesEndRef} />
+            </div>
 
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex gap-3 items-center">
-                <div className="w-7 h-7 rounded-lg bg-accent border border-indigo-500/20 flex items-center justify-center text-primary">
-                  <Bot className="w-4 h-4 animate-spin" />
-                </div>
-                <div className="px-4 py-2.5 rounded-2xl rounded-tl-none bg-secondary border border-border text-muted-foreground text-xs flex items-center space-x-1.5">
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
-                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
-                  <span className="ml-2 font-medium">Searching your published courses & progress...</span>
-                </div>
+            {/* Quick actions */}
+            {messages.length <= 1 && (
+              <div className="flex flex-wrap gap-1.5 border-t border-border px-3 py-2">
+                {QUICK_ACTIONS.map((action) => (
+                  <button
+                    key={action}
+                    type="button"
+                    onClick={() => sendMessage(action)}
+                    disabled={isLoading}
+                    className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-[11px] font-medium text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {action}
+                  </button>
+                ))}
               </div>
             )}
-            <div ref={messagesEndRef} />
-          </div>
 
-          {/* Quick Prompts (visible when chat has few messages) */}
-          {messages.length <= 2 && !isLoading && (
-            <div className="px-4 py-2 bg-card border-t border-border flex gap-2 overflow-x-auto scrollbar-none">
-              {DEFAULT_PROMPTS.map((prompt, i) => {
-                const Icon = prompt.icon;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => handleSend(prompt.label)}
-                    className="whitespace-nowrap px-2.5 py-1.5 rounded-xl bg-secondary hover:bg-secondary/80 text-xs font-medium text-foreground border border-border flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
-                  >
-                    <Icon className="w-3.5 h-3.5 text-primary" />
-                    {prompt.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            {error && (
+              <p className="border-t border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-[11px] text-rose-400">{error}</p>
+            )}
 
-          {/* Input Footer */}
-          <div className="p-3 bg-card border-t border-border">
-            <div className="relative flex items-end rounded-xl bg-background border border-border focus-within:border-primary transition-all">
+            {/* Input */}
+            <div className="flex items-end gap-2 border-t border-border p-3">
               <textarea
+                ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about your courses, progress, topics..."
+                placeholder="Ask about your courses..."
                 rows={1}
-                className="w-full resize-none bg-transparent px-3.5 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none max-h-24 min-h-[40px]"
+                className="max-h-24 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-300"
               />
               <button
-                onClick={() => handleSend()}
-                disabled={!input.trim() || isLoading}
-                className="mb-1.5 mr-1.5 p-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 disabled:hover:opacity-40 transition-all shrink-0 cursor-pointer"
+                type="button"
+                onClick={handleSend}
+                disabled={isLoading || !input.trim()}
+                aria-label="Send message"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-muted cursor-pointer"
               >
-                <Send className="w-4 h-4" />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 19V5m0 0l-6 6m6-6l6 6" />
+                </svg>
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Launcher Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-indigo-600/30 hover:scale-105 transition-all duration-300 focus:outline-none cursor-pointer"
-        aria-label="Open AI Tutor Chat"
-      >
-        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary border-2 border-background" />
-        </span>
-        {isOpen ? (
-          <ChevronDown className="w-7 h-7 transition-transform duration-200" />
-        ) : (
-          <Bot className="w-7 h-7 transition-transform duration-200 group-hover:scale-110" />
         )}
-      </button>
-    </div>
+      </div>
+    </>
   );
 }

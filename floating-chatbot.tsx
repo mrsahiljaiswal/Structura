@@ -7,11 +7,13 @@
  *
  * Assumptions about sibling modules (adjust import paths to match your repo):
  *  - "@/components/markdown-renderer" exports a <MarkdownRenderer content={string} />
- *  - Clerk's useUser() hook is available via "@clerk/nextjs"
+ *  - Clerk's useUser(
+ * ) hook is available via "@clerk/nextjs"
  *  - NEXT_PUBLIC_API_URL points at the FastAPI backend (defaults to localhost:8000)
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { KeyboardEvent } from "react";
 import { useUser } from "@clerk/nextjs";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 
@@ -37,6 +39,10 @@ interface ChatApiResponse {
   response: string;
   sources?: string[];
   grounding_mode: GroundingMode;
+}
+
+interface ApiErrorBody {
+  detail?: string;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -158,8 +164,8 @@ export default function FloatingChatbot() {
         });
 
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body?.detail || `Request failed with status ${res.status}`);
+          const body: ApiErrorBody = await res.json().catch(() => ({} as ApiErrorBody));
+          throw new Error(body.detail || `Request failed with status ${res.status}`);
         }
 
         const data: ChatApiResponse = await res.json();
@@ -194,7 +200,7 @@ export default function FloatingChatbot() {
 
   const handleSend = () => sendMessage(input);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
