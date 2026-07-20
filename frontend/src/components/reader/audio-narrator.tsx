@@ -83,31 +83,32 @@ export function AudioNarrator({ text, title, lessonId, onSentenceChange, onEnd }
     if (!isSupported) return;
 
     if (isPlaying) {
-      window.speechSynthesis.pause();
-      setIsPlaying(false);
-    } else {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        setIsPlaying(true);
-      } else {
-        setIsPlaying(true);
-        // Start from bookmarked position if available
-        let startIdx = 0;
-        if (lessonId && typeof window !== "undefined") {
-          const savedBm = localStorage.getItem(`structura-audio-bm-${lessonId}`);
-          if (savedBm) {
-            const parsed = parseInt(savedBm, 10);
-            if (!isNaN(parsed) && parsed < sentences.length) startIdx = parsed;
-          }
-        }
-        speakFromIndex(startIdx, rate);
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel();
       }
+      setIsPlaying(false);
+      onSentenceChange?.(null);
+    } else {
+      setIsPlaying(true);
+      let startIdx = currentIndex;
+      if (lessonId && typeof window !== "undefined" && startIdx === 0) {
+        const savedBm = localStorage.getItem(`structura-audio-bm-${lessonId}`);
+        if (savedBm) {
+          const parsed = parseInt(savedBm, 10);
+          if (!isNaN(parsed) && parsed < sentences.length) startIdx = parsed;
+        }
+      }
+      speakFromIndex(startIdx, rate);
     }
   };
 
   const handleStop = () => {
     if (!isSupported) return;
-    window.speechSynthesis.cancel();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.cancel();
+    }
     setIsPlaying(false);
     setCurrentIndex(0);
     onSentenceChange?.(null);

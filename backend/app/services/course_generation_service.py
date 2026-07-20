@@ -95,28 +95,52 @@ class CourseGenerationService:
         return course_json
 
     def _build_prompt(self, document: ExtractedDocument) -> str:
-        """Construct a concise instruction prompt for the LLM.
-
-        The prompt instructs the model to return ONLY JSON adhering to the course
-        structure specified in the product requirements.
-        """
+        """Construct a comprehensive instruction prompt for the LLM."""
         instructions = (
-            "You are a helpful professor. Convert the provided document chunks into "
-            "a structured learning course. Output MUST be valid JSON and follow this schema:\n"
-            "{\n  \"title\": str,\n  \"description\": str,\n  \"difficulty\": str,\n  \"estimated_time_minutes\": int,\n  \"learning_objectives\": [str],\n  \"prerequisites\": [str],\n  \"chapters\": [\n    {\n      \"title\": str,\n      \"summary\": str,\n      \"estimated_duration_minutes\": int,\n      \"lessons\": [\n        {\n          \"title\": str,\n          \"explanation\": str,\n          \"examples\": [str],\n          \"key_takeaways\": [str],\n          \"summary\": str\n        }\n      ]\n    }\n  ]\n}\n"
+            "You are a distinguished university professor and master curriculum designer. "
+            "Convert the provided document chunks into a highly comprehensive, in-depth educational course.\n\n"
+            "REQUIREMENTS:\n"
+            "1. Generate 4 to 6 Chapters structured logically from basic foundation to advanced mastery.\n"
+            "2. Each Chapter MUST contain 3 to 5 detailed Lessons.\n"
+            "3. Each Lesson's 'explanation' field MUST be a deep, thorough markdown prose breakdown (>300 words) with clear subheadings (##), bold terms, and code or math examples where applicable.\n"
+            "4. Output MUST be valid JSON adhering strictly to this schema:\n"
+            "{\n"
+            "  \"title\": str,\n"
+            "  \"description\": str,\n"
+            "  \"difficulty\": \"Beginner\" | \"Intermediate\" | \"Advanced\",\n"
+            "  \"estimated_time_minutes\": int,\n"
+            "  \"learning_objectives\": [str],\n"
+            "  \"prerequisites\": [str],\n"
+            "  \"chapters\": [\n"
+            "    {\n"
+            "      \"title\": str,\n"
+            "      \"summary\": str,\n"
+            "      \"estimated_duration_minutes\": int,\n"
+            "      \"lessons\": [\n"
+            "        {\n"
+            "          \"title\": str,\n"
+            "          \"explanation\": str,\n"
+            "          \"examples\": [str],\n"
+            "          \"key_takeaways\": [str],\n"
+            "          \"summary\": str\n"
+            "        }\n"
+            "      ]\n"
+            "    }\n"
+            "  ]\n"
+            "}\n"
         )
 
-        # Add lightweight chunk listing (title + text snippet)
+        # Add chunk listing
         chunks_text = []
         for c in document.chunks:
-            snippet = c.text.strip().replace("\n", " ")[:800]
+            snippet = c.text.strip().replace("\n", " ")[:1200]
             chunks_text.append(f"CHUNK {c.chunk_index} (pages {c.page_start}-{c.page_end}): {snippet}")
 
         prompt = (
             instructions
             + "\nDocument filename: "
             + str(document.document.original_filename)
-            + "\nProvide the course JSON only. Do not include any commentary.\nChunks:\n"
+            + "\nProvide valid JSON only. Do not include markdown code block backticks around the JSON string.\nChunks:\n"
             + "\n\n".join(chunks_text)
         )
 
