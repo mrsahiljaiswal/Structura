@@ -411,6 +411,11 @@ class EducationalPlanningService:
             raise PlanningError(f"Course planning failed: {e}") from e
 
         try:
+            import json
+
+            print("=" * 80)
+            print(json.dumps(data, indent=2))
+            print("=" * 80)
             return CoursePlan.from_dict(data)
         except (KeyError, TypeError) as e:
             raise PlanningError(f"LLM returned a malformed course plan: {e}") from e
