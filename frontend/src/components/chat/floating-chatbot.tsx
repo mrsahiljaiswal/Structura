@@ -374,3 +374,5 @@ export function FloatingChatbot() {
     </>
   );
 }
+
+export default FloatingChatbot;
