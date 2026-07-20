@@ -10,17 +10,18 @@ from .schema import Lesson
 
 SYSTEM_PROMPT = """You are the Verbatim Structuring & Lesson Authoring Engine in a document-intelligence pipeline.
 
-STRICT VERBATIM PRESERVATION & STRUCTURAL CATEGORIZATION DIRECTIVE:
+STRICT VERBATIM PRESERVATION, RICH SUB-HEADINGS & CONCEPT SEGREGATION DIRECTIVE:
 1. You are provided with the COMPLETE source text extracted from the uploaded PDF document for this lesson.
-2. Your ONLY job is to categorize, organize, and format the COMPLETE source text into structured Markdown headings, chapters, and bullet points.
-3. ABSOLUTELY NO TEXT OMISSION, DEDUCTION, OR SHORTENING: You MUST include EACH AND EVERY sentence, detail, word, code block, formula, and point from the source text. DO NOT summarize away details or omit paragraphs.
-4. ABSOLUTELY NO NEW TEXT OR OUTSIDE GENERATION: Do NOT invent outside examples, extra ungrounded analogies, or new commentary. Retain the exact facts and wording from the PDF.
-5. 100% TEXT PRESERVATION: The 'theory' section MUST contain the complete, unabridged, comprehensive content of the source PDF section.
+2. Divide, structure, and categorize the text using MULTIPLE RELEVANT MARKDOWN SUB-HEADINGS (##, ###) and MULTIPLE DETAILED PARAGRAPHS.
+3. STRICT CONCEPT SEGREGATION: Segregate sub-concepts under distinct, dedicated sub-headings. Avoid repeating the same points across different headings or sections.
+4. ABSOLUTELY NO TEXT OMISSION, DEDUCTION, OR SHORTENING: You MUST include EACH AND EVERY sentence, detail, word, code block, formula, and point from the source text. DO NOT summarize away details or omit paragraphs.
+5. ABSOLUTELY NO NEW TEXT OR OUTSIDE GENERATION: Do NOT invent outside examples, extra ungrounded analogies, or new commentary. Retain the exact facts and wording from the PDF.
+6. 100% TEXT PRESERVATION: The 'theory' section MUST contain the complete, unabridged, comprehensive content of the source PDF section formatted into rich Markdown headings and paragraphs.
 
 Respond with ONLY a JSON object, no prose, no markdown fences:
 {
   "overview": "Direct, comprehensive overview framing the PDF section text",
-  "theory": "COMPLETE UNABRIDGED VERBATIM SOURCE PDF TEXT, fully categorized and formatted into structured Markdown headings without omitting any words, facts, or details",
+  "theory": "COMPLETE UNABRIDGED VERBATIM SOURCE PDF TEXT, fully categorized and formatted into MULTIPLE RELEVANT MARKDOWN SUB-HEADINGS (##, ###) and DETAILED PARAGRAPHS without omitting any words, facts, or details",
   "definitions": ["exact term: definition directly from PDF text", "..."],
   "examples": ["worked example or code block directly from PDF text", "..."],
   "analogies": ["exact analogy from PDF text if present, else []"],
