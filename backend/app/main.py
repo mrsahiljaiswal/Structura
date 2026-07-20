@@ -12,7 +12,7 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
@@ -82,12 +82,33 @@ def create_app() -> FastAPI:
         expose_headers=["*"],
     )
 
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request, exc: HTTPException):
+        origin = request.headers.get("origin") or "https://structura-psi.vercel.app"
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "*",
+            },
+        )
+
     @app.exception_handler(Exception)
     async def global_exception_handler(request, exc):
         logger.error(f"Global unhandled error on {request.url.path}: {exc}", exc_info=True)
+        origin = request.headers.get("origin") or "https://structura-psi.vercel.app"
         return JSONResponse(
             status_code=500,
             content={"detail": str(exc) or "An internal server error occurred."},
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "*",
+            },
         )
 
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)

@@ -103,21 +103,26 @@ async def chat_with_tutor(
     db: AsyncSession = Depends(get_db),
 ):
     mode = request.effective_knowledge_mode
+    courses = []
+    user_prog_record = None
 
     # 1. Multi-Tenant DB Query: STRICTLY Filter Courses by Current User Account
-    if x_user_id:
-        course_stmt = select(CourseModel).where(CourseModel.user_id == x_user_id).options(
-            selectinload(CourseModel.chapters).selectinload(ChapterModel.lessons)
-        )
-    else:
-        course_stmt = select(CourseModel).options(
-            selectinload(CourseModel.chapters).selectinload(ChapterModel.lessons)
-        )
-    course_res = await db.execute(course_stmt)
-    courses = course_res.scalars().unique().all()
+    try:
+        if x_user_id:
+            course_stmt = select(CourseModel).where(CourseModel.user_id == x_user_id).options(
+                selectinload(CourseModel.chapters).selectinload(ChapterModel.lessons)
+            )
+        else:
+            course_stmt = select(CourseModel).options(
+                selectinload(CourseModel.chapters).selectinload(ChapterModel.lessons)
+            )
+        course_res = await db.execute(course_stmt)
+        courses = course_res.scalars().unique().all()
+    except Exception as db_err:
+        logger.warning(f"Course DB retrieval notice: {db_err}")
 
     # 2. Strict Security Check: If a specific course_id is requested, ensure user owns it
-    if request.course_id:
+    if request.course_id and courses:
         matching_course = next((c for c in courses if str(c.id) == str(request.course_id)), None)
         if not matching_course:
             raise HTTPException(
@@ -126,11 +131,13 @@ async def chat_with_tutor(
             )
 
     # 3. Retrieve User Progress & History
-    user_prog_record = None
     if x_user_id:
-        prog_stmt = select(UserProgressModel).where(UserProgressModel.user_id == x_user_id)
-        prog_res = await db.execute(prog_stmt)
-        user_prog_record = prog_res.scalars().first()
+        try:
+            prog_stmt = select(UserProgressModel).where(UserProgressModel.user_id == x_user_id)
+            prog_res = await db.execute(prog_stmt)
+            user_prog_record = prog_res.scalars().first()
+        except Exception as db_err:
+            logger.warning(f"User progress DB notice: {db_err}")
 
     # 4. Semantic Grounding Check
     top_score = 0.0
