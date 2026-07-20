@@ -44,6 +44,7 @@ async def list_courses(
                     key_takeaways=l.key_takeaways,
                     summary=l.summary,
                     position=l.position,
+                    course_id=course.id,
                 ))
             chapters.append(ChapterOut(id=ch.id, title=ch.title, position=ch.position, lessons=lessons))
         out_courses.append(CourseOut(

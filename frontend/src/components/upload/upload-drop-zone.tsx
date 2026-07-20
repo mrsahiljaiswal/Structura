@@ -143,7 +143,7 @@ export function UploadDropZone() {
 
           coursePersistence.addActivity("upload", "Generated Course", response.filename);
 
-          // Add generated course ID to client registry
+          // Add generated course ID to client registry & invalidate cache
           if (response?.course_id) {
             coursePersistence.addCourseId(response.course_id);
             // Delayed redirect to course details to let success toast finish

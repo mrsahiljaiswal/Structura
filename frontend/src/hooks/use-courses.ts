@@ -39,17 +39,20 @@ export function useCourses() {
   const { user } = useUser();
   const userId = user?.id || "anonymous";
 
-  const { data: courses = [], isLoading, isError } = useQuery<Course[]>({
+  const { data: courses = [], isLoading, isError, refetch } = useQuery<Course[]>({
     queryKey: ["courses", userId],
     queryFn: async () => {
       const res = await api.get("/api/v1/courses");
       return res.data;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes cache per user
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const addCourse = (id: string) => {
     queryClient.invalidateQueries({ queryKey: ["courses"] });
+    refetch();
   };
 
   const removeCourse = async (id: string) => {

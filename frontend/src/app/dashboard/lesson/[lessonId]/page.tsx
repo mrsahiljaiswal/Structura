@@ -87,17 +87,30 @@ export default function LessonPage() {
 
   // 2. Scan courses to locate the EXACT course that owns this lesson
   const { courses, isLoading: isCoursesLoading } = useCourses();
-  const queryCourseId = searchParams?.get("course_id");
-  const targetCourseId = lesson?.course_id || queryCourseId;
 
-  const activeCourse =
-    (targetCourseId
-      ? courses.find((c) => String(c.id).toLowerCase() === String(targetCourseId).toLowerCase())
-      : null) ||
-    courses.find((c) =>
-      c.chapters?.some((ch) => ch.lessons?.some((l) => String(l.id).toLowerCase() === String(lessonId).toLowerCase()))
-    ) ||
-    (courses.length > 0 ? courses[0] : null);
+  const activeCourse = React.useMemo(() => {
+    if (!courses || courses.length === 0) return null;
+
+    const queryCourseId = searchParams?.get("course_id");
+    const targetCourseId = lesson?.course_id || queryCourseId;
+
+    if (targetCourseId) {
+      const match = courses.find((c) => String(c.id).toLowerCase() === String(targetCourseId).toLowerCase());
+      if (match) return match;
+    }
+
+    if (lessonId) {
+      const cleanLessonId = String(lessonId).toLowerCase().replace(/-/g, "");
+      const match = courses.find((c) =>
+        c.chapters?.some((ch) =>
+          ch.lessons?.some((l) => String(l.id).toLowerCase().replace(/-/g, "") === cleanLessonId)
+        )
+      );
+      if (match) return match;
+    }
+
+    return null;
+  }, [courses, lesson, lessonId, searchParams]);
 
   // Handle marking complete
   const markComplete = async () => {
