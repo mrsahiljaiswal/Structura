@@ -8,22 +8,26 @@ from app.services.semantic_segmentation.schema import LearningUnit, LearningUnit
 from .exceptions import LessonAuthoringError
 from .schema import Lesson
 
-SYSTEM_PROMPT = """You are the Lesson Authoring Engine in a document-intelligence pipeline. \
-You are given ONE lesson's plan and the exact source text from the uploaded PDF document. \
+SYSTEM_PROMPT = """You are the Verbatim Structuring & Lesson Authoring Engine in a document-intelligence pipeline.
 
-STRICT FAITHFULNESS DIRECTIVE: You MUST ONLY include facts, topics, definitions, points, and examples directly present in the uploaded source text. DO NOT extrapolate, generate new ideas, fabricate analogies, or add outside ungrounded commentary. Extract, organize, and format the exact PDF information clearly using structured Markdown headings and bullet points.
+STRICT VERBATIM PRESERVATION & STRUCTURAL CATEGORIZATION DIRECTIVE:
+1. You are provided with the COMPLETE source text extracted from the uploaded PDF document for this lesson.
+2. Your ONLY job is to categorize, organize, and format the COMPLETE source text into structured Markdown headings, chapters, and bullet points.
+3. ABSOLUTELY NO TEXT OMISSION, DEDUCTION, OR SHORTENING: You MUST include EACH AND EVERY sentence, detail, word, code block, formula, and point from the source text. DO NOT summarize away details or omit paragraphs.
+4. ABSOLUTELY NO NEW TEXT OR OUTSIDE GENERATION: Do NOT invent outside examples, extra ungrounded analogies, or new commentary. Retain the exact facts and wording from the PDF.
+5. 100% TEXT PRESERVATION: The 'theory' section MUST contain the complete, unabridged, comprehensive content of the source PDF section.
 
 Respond with ONLY a JSON object, no prose, no markdown fences:
 {
-  "overview": "Direct summary of what the PDF text covers in this section",
-  "theory": "Exhaustive explanation strictly containing only the facts and points present in the PDF document",
-  "definitions": ["term: definition from PDF", "..."],
-  "examples": ["example provided in the PDF", "..."],
-  "analogies": ["analogy from PDF if present, or empty list []"],
-  "misconceptions": ["misconception noted in PDF if present, or empty list []"],
-  "applications": ["application mentioned in PDF if present, or empty list []"],
-  "summary": "Summary paragraph of the PDF section points",
-  "key_takeaways": ["key point from PDF text", "..."]
+  "overview": "Direct, comprehensive overview framing the PDF section text",
+  "theory": "COMPLETE UNABRIDGED VERBATIM SOURCE PDF TEXT, fully categorized and formatted into structured Markdown headings without omitting any words, facts, or details",
+  "definitions": ["exact term: definition directly from PDF text", "..."],
+  "examples": ["worked example or code block directly from PDF text", "..."],
+  "analogies": ["exact analogy from PDF text if present, else []"],
+  "misconceptions": ["exact misconception from PDF text if present, else []"],
+  "applications": ["exact application from PDF text if present, else []"],
+  "summary": "Full section summary directly from PDF text",
+  "key_takeaways": ["exact key takeaway points directly from PDF text", "..."]
 }"""
 
 
@@ -79,7 +83,7 @@ class LessonAuthoringService:
     @staticmethod
     def _build_prompt(planned_lesson: PlannedLesson, source_units: list[LearningUnit], prereq_titles: list[str]) -> str:
         units_text = "\n\n".join(
-            f"--- Learning unit: {u.topic} ---\nSummary: {u.summary}\nKeywords: {', '.join(u.keywords)}\n\n{u.text[:1200]}"
+            f"--- Learning unit: {u.topic} ---\nSummary: {u.summary}\nKeywords: {', '.join(u.keywords)}\n\n{u.text}"
             for u in source_units
         )
         return (

@@ -47,7 +47,7 @@ class SemanticSegmentationService:
             if node is None:
                 continue
             text_parts.append(self._flatten_text(node))
-        combined_text = "\n\n".join(p for p in text_parts if p)[:TEXT_CHAR_CAP]
+        combined_text = "\n\n".join(p for p in text_parts if p)
         if not combined_text.strip():
             combined_text = (
                 f"Concept: {concept.name}\n"
