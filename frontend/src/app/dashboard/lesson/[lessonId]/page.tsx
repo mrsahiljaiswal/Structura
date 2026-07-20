@@ -85,10 +85,10 @@ export default function LessonPage() {
   });
 
   // 2. Scan all cached courses to locate which course owns this lesson
-  const { courses } = useCourses();
+  const { courses, isLoading: isCoursesLoading } = useCourses();
   const activeCourse = courses.find((c) =>
-    c.chapters.some((ch) => ch.lessons.some((l) => l.id === lessonId))
-  );
+    c.chapters?.some((ch) => ch.lessons?.some((l) => String(l.id).toLowerCase() === String(lessonId).toLowerCase()))
+  ) || courses[0];
 
   // Handle marking complete
   const markComplete = async () => {
@@ -173,7 +173,14 @@ export default function LessonPage() {
   const isCompleted = coursePersistence.isLessonCompleted(lessonId);
 
   // Left Column Sidebar outline navigator
-  const outlineSidebar = activeCourse ? (
+  const outlineSidebar = isCoursesLoading ? (
+    <div className="space-y-4 p-2">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-6 w-full" />
+      <Skeleton className="h-6 w-full" />
+      <Skeleton className="h-6 w-full" />
+    </div>
+  ) : activeCourse ? (
     <div className="space-y-6 text-left h-full flex flex-col">
       <div className="border-b border-border/20 pb-3">
         <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
@@ -185,14 +192,14 @@ export default function LessonPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
-        {activeCourse.chapters.map((ch) => (
+        {activeCourse.chapters?.map((ch) => (
           <div key={ch.id} className="space-y-1.5">
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">
               Ch {ch.position} • {ch.title}
             </p>
             <div className="space-y-1">
-              {ch.lessons.map((l) => {
-                const isCurrent = l.id === lessonId;
+              {ch.lessons?.map((l) => {
+                const isCurrent = String(l.id).toLowerCase() === String(lessonId).toLowerCase();
                 const isDone = coursePersistence.isLessonCompleted(l.id);
 
                 return (
@@ -200,7 +207,7 @@ export default function LessonPage() {
                     key={l.id}
                     onClick={() => router.push(`/dashboard/lesson/${l.id}`)}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors text-left",
+                      "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors text-left cursor-pointer",
                       isCurrent
                         ? "bg-primary text-primary-foreground font-bold"
                         : "text-zinc-400 hover:bg-secondary/40 hover:text-foreground"
@@ -219,7 +226,10 @@ export default function LessonPage() {
       </div>
     </div>
   ) : (
-    <div className="text-zinc-500 text-xs">No active outline context</div>
+    <div className="p-3 text-zinc-500 text-xs flex items-center gap-2">
+      <BookOpen className="h-4 w-4 text-primary" />
+      <span>Lesson Outline Ready</span>
+    </div>
   );
 
   // Right Column Sidebar notes pane

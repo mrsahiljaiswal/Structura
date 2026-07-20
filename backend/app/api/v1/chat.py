@@ -240,9 +240,19 @@ async def chat_with_tutor(
             knowledge_mode=mode,
             grounding_mode=mode,
         )
-    except Exception as e:
+    except Exception as err:
+        logger.error(f"[Tutor Chat API Exception]: {err}")
+        course_candidates = []
+        chapter_candidates = []
+        for c in courses:
+            c_t = getattr(c, "title", "Course")
+            c_score = calculate_semantic_score(request.message, c_t)
+            course_candidates.append((c_score, c))
+            for ch in getattr(c, "chapters", []) or []:
+                ch_t = getattr(ch, "title", "Chapter")
+                ch_score = calculate_semantic_score(request.message, f"{c_t} {ch_t}")
+                chapter_candidates.append((ch_score, ch, c_t))
 
-        # Sort candidates descending by semantic relevance score
         course_candidates.sort(key=lambda x: x[0], reverse=True)
         chapter_candidates.sort(key=lambda x: x[0], reverse=True)
 
