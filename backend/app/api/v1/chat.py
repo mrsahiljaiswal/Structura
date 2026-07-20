@@ -271,11 +271,11 @@ async def chat_with_tutor(
         matched_type = "Chapter Summary"
         matched_items = []
 
-        # Compare top chapter candidate vs top course candidate score
+        # Compare top chapter candidate vs top course candidate score (require minimum 0.15 relevance)
         top_c_score = course_candidates[0][0] if course_candidates else 0.0
         top_ch_score = chapter_candidates[0][0] if chapter_candidates else 0.0
 
-        if top_ch_score >= top_c_score and chapter_candidates:
+        if top_ch_score > 0.15 and top_ch_score >= top_c_score and chapter_candidates:
             best_ch = chapter_candidates[0][1]
             parent_course = chapter_candidates[0][2]
             matched_title = f"{getattr(best_ch, 'title', 'Chapter')} ({parent_course})"
@@ -284,7 +284,7 @@ async def chat_with_tutor(
                 l_t = getattr(l, "title", "Lesson")
                 l_s = getattr(l, "summary", "") or (getattr(l, "content", "") or "")[:350]
                 matched_items.append(f"• **{l_t}**:\n  {l_s}")
-        elif course_candidates:
+        elif top_c_score > 0.15 and course_candidates:
             best_c = course_candidates[0][1]
             matched_title = getattr(best_c, "title", "Course")
             matched_type = "Course Summary"

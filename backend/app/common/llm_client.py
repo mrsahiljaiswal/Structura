@@ -78,8 +78,8 @@ class LLMClient:
         raise LLMError(f"All available LLM providers failed: {'; '.join(errors)}")
 
     def _call_gemini(self, system: str, user: str) -> str:
-        model_name = self.gemini_model or "gemini-2.5-flash"
-        models_to_try = [model_name, "gemini-3.5-flash-lite", "gemini-2.5-flash-lite",]
+        model_name = self.gemini_model or "gemini-1.5-flash"
+        models_to_try = [model_name, "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-exp", "gemini-2.5-flash"]
         seen = set()
         models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
 
