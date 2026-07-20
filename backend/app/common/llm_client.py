@@ -10,7 +10,8 @@ import requests
 
 from .exceptions import LLMError
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_PDF_MODEL = "gemini-3.1-flash-lite"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ FakeResponder = Callable[[str, str], str]
 class LLMClient:
     """
     Multi-provider LLM client for Structura.
-    Priority 1: Google Gemini API (gemini-1.5-flash / gemini-1.5-flash-8b)
-    Priority 2: Groq API fallback (llama-3.1-8b-instant)
+    Strict PDF Model: gemini-3.1-flash-lite
+    Strict Chatbot / AI Tutor Model: gemini-2.5-flash-lite
     """
 
     def __init__(
@@ -78,8 +79,15 @@ class LLMClient:
         raise LLMError(f"All available LLM providers failed: {'; '.join(errors)}")
 
     def _call_gemini(self, system: str, user: str) -> str:
-        model_name = self.gemini_model or "gemini-1.5-flash"
-        models_to_try = [model_name, "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-2.0-flash-exp", "gemini-2.5-flash"]
+        model_name = self.gemini_model or "gemini-2.5-flash-lite"
+        models_to_try = [
+            model_name,
+            "gemini-3.1-flash-lite",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+        ]
         seen = set()
         models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
 

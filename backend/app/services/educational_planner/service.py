@@ -64,7 +64,7 @@ class EducationalPlanningService:
     """
 
     def __init__(self, llm_client: LLMClient | None = None):
-        self.llm = llm_client or LLMClient()
+        self.llm = llm_client or LLMClient(model="gemini-3.1-flash-lite")
 
     def plan(self, graph: KnowledgeGraph, units: LearningUnitSet, course_title: str) -> CoursePlan:
         if not units.units:

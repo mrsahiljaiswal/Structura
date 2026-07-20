@@ -32,7 +32,7 @@ logger = logging.getLogger("structura.chat")
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 # Config
-CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "gemini-2.5-flash")
+CHATBOT_MODEL = "gemini-2.5-flash-lite"
 MAX_COURSE_CONTEXT_CHARS = 180_000
 
 
@@ -230,7 +230,7 @@ async def chat_with_tutor(
     user_prompt = f"Conversation History:\n{history_text}\nUser Request: {request.message}"
 
     # 8. Execute LLM Call
-    llm = LLMClient(model=CLAUDE_MODEL)
+    llm = LLMClient(model=CHATBOT_MODEL)
     try:
         reply_text = llm._call(system_prompt, user_prompt)
         cleaned_text = re.sub(r"^```(?:markdown)?", "", reply_text.strip(), flags=re.IGNORECASE)
