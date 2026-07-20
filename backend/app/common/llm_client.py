@@ -79,7 +79,7 @@ class LLMClient:
 
     def _call_gemini(self, system: str, user: str) -> str:
         model_name = self.gemini_model or "gemini-2.5-flash"
-        models_to_try = [model_name, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"]
+        models_to_try = [model_name, "gemini-3.5-flash-lite", "gemini-2.5-flash-lite",]
         seen = set()
         models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
 
