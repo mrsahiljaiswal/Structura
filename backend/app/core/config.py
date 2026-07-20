@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "structura"
     DATABASE_URL: str | None = None
 
     # Pool tuning; sane defaults for a small production deployment.
@@ -62,24 +63,23 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        """Async SQLAlchemy connection string (uses the asyncpg driver)."""
+        """Async SQLAlchemy connection string."""
         if self.DATABASE_URL:
             db_url = self.DATABASE_URL.strip()
             if db_url.startswith("postgres://"):
                 return db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-            elif db_url.startswith("postgresql://"):
+            elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
                 return db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
             return db_url
-        return str(
-            PostgresDsn.build(
-                scheme="postgresql+asyncpg",
-                username=self.POSTGRES_USER,
-                password=self.POSTGRES_PASSWORD,
-                host=self.POSTGRES_SERVER,
-                port=self.POSTGRES_PORT,
-                path=self.POSTGRES_DB,
-            )
-        )
+        try:
+            import asyncpg  # noqa: F401
+            return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        except ImportError:
+            try:
+                import aiosqlite  # noqa: F401
+                return f"sqlite+aiosqlite:///{self.POSTGRES_DB}.db"
+            except ImportError:
+                return f"sqlite:///{self.POSTGRES_DB}.db"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
