@@ -19,7 +19,7 @@ const pipelineSteps: PipelineStep[] = [
   { id: 2, label: "Extracting Text", duration: 3, description: "Parsing pages using PyMuPDF" },
   { id: 3, label: "Cleaning & Normalizing", duration: 3, description: "Cleaning regex, smart quotes, formatting" },
   { id: 4, label: "Semantic Chunking", duration: 4, description: "Splitting text into overlapping paragraphs" },
-  { id: 5, label: "Course Outline Planning", duration: 8, description: "Designing chapters outline with Groq AI" },
+  { id: 5, label: "Course Outline Planning", duration: 8, description: "Designing chapters outline" },
   { id: 6, label: "Generating Lessons Content", duration: 16, description: "Writing detailed markdown lesson summaries" },
   { id: 7, label: "Reviewing Content Quality", duration: 4, description: "Validating structural consistency" },
   { id: 8, label: "Building Database Assembly", duration: 3, description: "Saving PostgreSQL course tables" },
