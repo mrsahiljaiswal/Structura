@@ -1,479 +1,74 @@
-# Structura Architecture
+# 🏛️ Structura System Architecture
 
-## Overview
+## Executive Summary
 
-Structura is an AI-powered SaaS platform that transforms static documents into structured, interactive learning experiences.
+Structura is an AI-powered document intelligence and adaptive learning platform. It transforms unstructured PDF textbooks, engineering documentation, and research papers into structured, interactive e-courses in under 45 seconds.
 
-Instead of simply displaying PDFs, Structura extracts knowledge from documents and generates AI-powered courses consisting of chapters, lessons, quizzes, summaries, and an intelligent learning companion.
-
-The architecture is designed around modular services, allowing each component to evolve independently while maintaining a clean separation of concerns.
-
----
-
-# Architecture Goals
-
-The architecture aims to achieve:
-
-- Scalability
-- Maintainability
-- Modularity
-- Separation of Concerns
-- AI-first Design
-- Production-ready Codebase
+The system uses a **Layered Service-Repository Architecture** built on:
+- **Frontend**: Next.js 15 App Router, React 19, TypeScript, Tailwind CSS with dark glassmorphism, Framer Motion, TanStack React Query v5, Clerk Auth.
+- **Backend**: Python 3.11, FastAPI, Async SQLAlchemy 2.0, PostgreSQL (Render DB), Starlette CORS.
+- **AI Engine**: Google Gemini 3.1 & 2.5 Flash Lite dual-model pipeline.
 
 ---
 
-# High-Level Architecture
+## High-Level System Architecture Diagram
 
-```text
-                    ┌──────────────────────────┐
-                    │        Frontend          │
-                    │       (Next.js)          │
-                    └────────────┬─────────────┘
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      Next.js 15 Client App                       │
+│    Dashboard • Course Reader • AI Tutor Suite • Mind Maps        │
+└────────────────────────────────┬─────────────────────────────────┘
+                                 │ HTTPS REST API / JSON
+                                 ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                       FastAPI Async Backend                      │
+│   Async SQLAlchemy 2.0 • Pydantic v2 • CORS • Clerk Auth Middleware│
+└────────────────────────────────┬─────────────────────────────────┘
                                  │
-                           HTTPS / REST
-                                 │
-                    ┌────────────▼─────────────┐
-                    │      FastAPI Backend      │
-                    └────────────┬─────────────┘
-                                 │
-      ┌───────────────┬──────────┼──────────────┬──────────────┐
-      │               │          │              │              │
-      ▼               ▼          ▼              ▼              ▼
- Authentication  Document     Course AI      AI Tutor      Quiz Engine
-    Service      Service       Service        Service         Service
-      │               │          │              │              │
-      └───────────────┴──────────┼──────────────┴──────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │      PostgreSQL         │
-                    └────────────┬────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │       ChromaDB          │
-                    └────────────┬────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │      Groq LLM API       │
-                    └─────────────────────────┘
+             ┌───────────────────┴───────────────────┐
+             ▼                                       ▼
+┌───────────────────────────┐           ┌───────────────────────────┐
+│   PostgreSQL Database     │           │    Google Gemini API      │
+│ • Documents, Courses      │           │ • 3.1 Flash Lite (Parse)  │
+│ • Chapters, Lessons       │           │ • 2.5 Flash Lite (RAG)    │
+│ • Progress & Analytics    │           └───────────────────────────┘
+└───────────────────────────┘
 ```
 
 ---
 
-# Technology Stack
+## Technology Stack Justifications
 
-## Frontend
+### 1. Backend: FastAPI & Python 3.11
+- **Async Native I/O**: FastAPI uses `asyncio` and `uvicorn`, enabling thousands of concurrent non-blocking requests.
+- **Python NLP Ecosystem**: Python provides native PDF parsing libraries (`PyPDF`, `PDFPlumber`) with superior coordinate text extraction.
+- **Pydantic v2 Type Safety**: Validates schemas at runtime with compiled Rust speed.
 
-- Next.js 15
-- React 19
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- React Query
-- React Hook Form
-- Zod
-- Axios
-- Framer Motion
-- Lucide Icons
+### 2. Database: PostgreSQL + JSONB
+- **Relational Integrity**: Foreign key cascade deletes (`ON DELETE CASCADE`) guarantee that deleting a course cleans up child chapters and lessons cleanly.
+- **Hybrid JSONB Support**: Native JSONB columns store takeaways, worked examples, and quiz scores inside relational rows.
 
----
+### 3. AI Models: Dual-Model Gemini Allocation
+- **Gemini 3.1 Flash Lite**: Ingests up to 1,000,000 tokens per window with strict JSON compliance. Handles PDF normalization, topological planning, and verbatim lesson authoring.
+- **Gemini 2.5 Flash Lite**: Delivers sub-second latency for interactive RAG Chatbot queries, Socratic Explainers, and practice quizzes.
 
-## Backend
-
-- FastAPI
-- SQLAlchemy 2
-- Alembic
-- Pydantic Settings
+### 4. Frontend: Next.js 15 & TanStack React Query v5
+- **Next.js 15 App Router**: Provides fast initial loads, route handlers, and component layout nesting.
+- **TanStack React Query v5**: Automatically manages server state caching (`staleTime: 0`) and triggers instant cache refetching on course generation.
 
 ---
 
-## Database
+## Subsystem Architecture
 
-PostgreSQL
+### 1. Document Ingestion Subsystem
+- `upload-drop-zone.tsx` receives PDF binary streams (< 50MB) and dispatches multipart POST requests to `/api/v1/documents/upload`.
+- FastAPI streams binary bytes into `DocumentNormalizationService` without saving temporary files to disk.
 
-Stores:
+### 2. 8-Stage NLP Document Pipeline Subsystem
+- Normalization $\rightarrow$ Document Understanding $\rightarrow$ Structural Analysis $\rightarrow$ Knowledge Extraction $\rightarrow$ Semantic Segmentation $\rightarrow$ Educational Planning $\rightarrow$ Lesson Authoring $\rightarrow$ Persistence.
 
-- Users
-- Documents
-- Courses
-- Chapters
-- Lessons
-- Progress
-- Quiz Results
-- Chat History
+### 3. Grounded RAG AI Tutor Subsystem
+- `/api/v1/chat` queries enrolled user courses, computes keyword/fuzzy relevance grounding scores, rejects candidates below `0.15` threshold, and passes top context chunks to `gemini-2.5-flash-lite`.
 
----
-
-## Vector Database
-
-ChromaDB
-
-Stores:
-
-- Document Embeddings
-- Semantic Search Index
-
----
-
-## AI
-
-Groq
-
-Responsibilities:
-
-- Course Generation
-- Lesson Generation
-- Quiz Generation
-- AI Tutor
-- Summarization
-
----
-
-# Frontend Architecture
-
-```text
-Frontend
-
-Landing
-
-Dashboard
-
-Upload
-
-Course Viewer
-
-Lesson Viewer
-
-Quiz
-
-AI Tutor
-
-Profile
-```
-
-Responsibilities
-
-- User Interface
-- Authentication
-- State Management
-- API Communication
-- Markdown Rendering
-
----
-
-# Backend Architecture
-
-The backend follows a layered architecture.
-
-```text
-API Layer
-
-↓
-
-Service Layer
-
-↓
-
-Repository Layer
-
-↓
-
-Database
-```
-
----
-
-## API Layer
-
-Responsible for
-
-- Request Validation
-- Authentication
-- Response Formatting
-
-Contains
-
-```text
-/api/v1
-```
-
----
-
-## Service Layer
-
-Contains business logic.
-
-Examples
-
-- Course Generation
-- Quiz Generation
-- AI Tutor
-- Document Processing
-
----
-
-## Repository Layer
-
-Responsible for database access.
-
-Advantages
-
-- Easy testing
-- Clean separation
-- Replace database without changing business logic
-
----
-
-# Core Services
-
-## Authentication Service
-
-Responsibilities
-
-- User Authentication
-- Session Validation
-- User Creation
-
----
-
-## Document Service
-
-Responsibilities
-
-- Upload files
-- Store metadata
-- Extract text
-- Manage processing status
-
----
-
-## AI Course Service
-
-Responsibilities
-
-- Generate course metadata
-- Generate chapters
-- Generate lessons
-- Generate summaries
-
----
-
-## AI Tutor Service
-
-Responsibilities
-
-- Answer questions
-- Summarize chapters
-- Explain difficult concepts
-- Suggest next lessons
-
----
-
-## Quiz Service
-
-Responsibilities
-
-- Generate quizzes
-- Evaluate answers
-- Calculate scores
-
----
-
-## Progress Service
-
-Responsibilities
-
-- Track lesson completion
-- Calculate course completion
-- Store learning analytics
-
----
-
-# Database Design Philosophy
-
-Separate the uploaded document from the generated course.
-
-```text
-Document
-
-↓
-
-Course
-```
-
-Advantages
-
-- Regenerate courses
-- Support DOCX
-- Support PPT
-- Maintain original source
-
----
-
-# Request Flow
-
-```text
-User
-
-↓
-
-Next.js
-
-↓
-
-FastAPI
-
-↓
-
-Service
-
-↓
-
-Repository
-
-↓
-
-Database
-```
-
----
-
-# AI Request Flow
-
-```text
-User
-
-↓
-
-FastAPI
-
-↓
-
-AI Service
-
-↓
-
-Groq
-
-↓
-
-Response
-
-↓
-
-Database
-
-↓
-
-Frontend
-```
-
----
-
-# Folder Structure
-
-## Frontend
-
-```text
-frontend/
-
-src/
-
-app/
-
-components/
-
-hooks/
-
-lib/
-
-providers/
-
-services/
-
-types/
-```
-
----
-
-## Backend
-
-```text
-backend/
-
-app/
-
-api/
-
-core/
-
-models/
-
-schemas/
-
-repositories/
-
-services/
-
-dependencies/
-
-utils/
-
-main.py
-```
-
----
-
-# Security
-
-Authentication
-
-- Clerk
-
-Authorization
-
-- JWT Validation
-
-Environment Variables
-
-- .env
-
-Secrets
-
-- Never hardcoded
-
----
-
-# Scalability
-
-The architecture supports future additions:
-
-- DOCX Upload
-- PowerPoint Upload
-- Flashcards
-- Mind Maps
-- Audio Narration
-- Course Certificates
-- Team Workspaces
-
-without major redesign.
-
----
-
-# Design Principles
-
-- Single Responsibility Principle
-- Separation of Concerns
-- Modular Services
-- Reusable Components
-- API-first Design
-- AI-first Architecture
-- Scalable Database Design
-
----
-
-# Architecture Summary
-
-Structura is built using a modular client-server architecture where the frontend handles user experience, the backend orchestrates business logic and AI workflows, PostgreSQL stores structured application data, ChromaDB powers semantic retrieval, and Groq provides large language model capabilities.
-
-This design keeps the application clean, scalable, and easy to maintain while supporting future AI-powered features.
+### 4. Client State & Study Analytics Persistence
+- `CoursePersistenceService` singleton tracks study duration across reading, AI tutor chats, and practice quizzes, broadcasting custom `storage` events for real-time UI updates.

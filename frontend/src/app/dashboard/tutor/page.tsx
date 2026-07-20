@@ -277,21 +277,21 @@ Return strictly JSON array format without markdown fence:
 
         {/* Feature 1: RAG Chat */}
         {activeTab === "chat" && (
-          <div className="relative flex flex-col h-[calc(100vh-12rem)] w-full justify-between overflow-hidden">
-            <div className="flex-1 min-h-0 w-full flex flex-col justify-between overflow-y-auto">
+          <div className="relative flex flex-col h-[calc(100vh-13rem)] w-full justify-between overflow-hidden rounded-3xl border border-border/80 bg-card/40 backdrop-blur-xl">
+            <div className="flex-1 min-h-0 w-full flex flex-col justify-between overflow-y-auto pb-28">
               {messages.length <= 1 ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-accent border border-primary/20 text-primary shadow-md">
-                    <Sparkles className="h-8 w-8 animate-pulse text-primary" />
+                <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 space-y-4 text-center my-auto pb-20">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-accent border border-primary/20 text-primary shadow-md">
+                    <Sparkles className="h-7 w-7 animate-pulse text-primary" />
                   </div>
-                  <div className="space-y-2 max-w-md">
-                    <h2 className="font-extrabold text-foreground text-xl tracking-tight">Course-Grounded AI Tutor</h2>
-                    <p className="text-xs text-muted-foreground">Ask questions directly against your enrolled course materials.</p>
+                  <div className="space-y-1.5 max-w-md">
+                    <h2 className="font-extrabold text-foreground text-lg sm:text-xl tracking-tight">Course-Grounded AI Tutor</h2>
+                    <p className="text-xs text-muted-foreground">Ask questions directly grounded in your enrolled course materials.</p>
                   </div>
-                  <SuggestedPrompts onSelect={(prompt) => handleSendMessage(prompt)} />
+                  <SuggestedPrompts courseTitle={activeCourseObj?.title} onSelect={(prompt) => handleSendMessage(prompt)} />
                 </div>
               ) : (
-                <div className="flex-1 overflow-y-auto pt-2 pb-32">
+                <div className="flex-1 overflow-y-auto pt-2 pb-24">
                   <ChatMessages messages={messages} isLoading={isLoading} />
                 </div>
               )}
