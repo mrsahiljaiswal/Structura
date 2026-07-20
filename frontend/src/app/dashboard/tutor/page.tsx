@@ -63,6 +63,21 @@ export default function TutorPage() {
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
 
+  // Auto-select first enrolled course as default if unselected
+  useEffect(() => {
+    if (courses && courses.length > 0 && courses[0]?.id && !selectedCourseId) {
+      setSelectedCourseId(courses[0].id);
+    }
+  }, [courses, selectedCourseId]);
+
+  // Automatically track active study time spent on the AI Tutor page (10 seconds interval)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      coursePersistence.addStudyTime(10);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (typeof window !== "undefined" && messages.length > 0) {
       localStorage.setItem("structura-tutor-messages", JSON.stringify(messages));
@@ -142,19 +157,20 @@ export default function TutorPage() {
     setIsGeneratingQuiz(true);
     setQuizSubmitted(false);
     setUserQuizAnswers({});
+    setQuizQuestions([]); // Reset to force fresh generation
 
     const selectedCourse = courses.find((c) => c.id === selectedCourseId) || courses[0];
     const courseTitle = selectedCourse ? selectedCourse.title : "your enrolled course";
 
     try {
-      const promptText = `Generate a ${quizQuestionCount}-question multiple choice practice quiz based strictly on ${courseTitle}. 
+      const promptText = `Generate a fresh new set of ${quizQuestionCount} ${quizQuestionType.replace("_", " ")} practice quiz questions based strictly on ${courseTitle}. 
 Return strictly JSON array format without markdown fence:
 [
   {
     "question": "Question text here?",
     "options": ["A) option 1", "B) option 2", "C) option 3", "D) option 4"],
     "answer": "A) option 1",
-    "explanation": "Explanation here"
+    "explanation": "Detailed explanation here"
   }
 ]`;
 
@@ -185,8 +201,9 @@ Return strictly JSON array format without markdown fence:
           });
         }
 
+        const seed = Date.now();
         for (let i = 0; i < quizQuestionCount; i++) {
-          const lTitle = lessons[i % Math.max(1, lessons.length)]?.title || `Core Concept ${i + 1}`;
+          const lTitle = lessons[(i + seed) % Math.max(1, lessons.length)]?.title || `Core Concept ${i + 1}`;
           generated.push({
             question: `What is a primary principle discussed in "${lTitle}" within ${courseTitle}?`,
             options: [
@@ -208,13 +225,15 @@ Return strictly JSON array format without markdown fence:
     }
   };
 
+  const activeCourseObj = courses.find((c) => c.id === selectedCourseId) || courses[0];
+
   return (
     <DashboardLayout breadcrumbs={breadcrumbs}>
       <div className="flex flex-col h-full w-full max-w-5xl mx-auto space-y-6 pb-12">
-        {/* Header Navigation Tabs */}
-        <div className="flex items-center justify-between border-b border-border pb-4 pt-2">
+        {/* Header Navigation Tabs - Responsive Scroll on Mobile */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border pb-4 pt-2">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
@@ -223,10 +242,10 @@ Return strictly JSON array format without markdown fence:
             </div>
           </div>
 
-          <div className="flex items-center p-1 rounded-2xl bg-secondary border border-border">
+          <div className="flex items-center p-1 rounded-2xl bg-secondary/80 border border-border w-full sm:w-auto overflow-x-auto scrollbar-none shrink-0">
             <button
               onClick={() => setActiveTab("chat")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === "chat" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -236,7 +255,7 @@ Return strictly JSON array format without markdown fence:
 
             <button
               onClick={() => setActiveTab("explainer")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === "explainer" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -246,7 +265,7 @@ Return strictly JSON array format without markdown fence:
 
             <button
               onClick={() => setActiveTab("quiz")}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === "quiz" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -379,12 +398,12 @@ Return strictly JSON array format without markdown fence:
                   <p className="text-xs text-muted-foreground">Generate a custom quiz grounded strictly in your enrolled course materials.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2.5 bg-secondary/40 p-2.5 rounded-2xl border border-primary/20 backdrop-blur-md">
                   {/* Course Context Selection */}
                   <select
                     value={selectedCourseId}
                     onChange={(e) => setSelectedCourseId(e.target.value)}
-                    className="h-9 px-3 rounded-xl border border-border/40 bg-card text-xs font-bold text-foreground focus:outline-none cursor-pointer"
+                    className="h-10 px-3.5 rounded-xl border border-primary/20 bg-card/90 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-pointer shadow-xs transition-all"
                   >
                     <option value="">All Enrolled Courses</option>
                     {courses.map((c) => (
@@ -398,7 +417,7 @@ Return strictly JSON array format without markdown fence:
                   <select
                     value={quizQuestionType}
                     onChange={(e) => setQuizQuestionType(e.target.value)}
-                    className="h-9 px-3 rounded-xl border border-border/40 bg-card text-xs font-bold text-foreground focus:outline-none cursor-pointer"
+                    className="h-10 px-3.5 rounded-xl border border-primary/20 bg-card/90 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-pointer shadow-xs transition-all"
                   >
                     <option value="multiple_choice">Multiple Choice</option>
                     <option value="true_false">True / False</option>
@@ -410,7 +429,7 @@ Return strictly JSON array format without markdown fence:
                   <select
                     value={quizQuestionCount}
                     onChange={(e) => setQuizQuestionCount(Number(e.target.value))}
-                    className="h-9 px-3 rounded-xl border border-border/40 bg-card text-xs font-bold text-foreground focus:outline-none cursor-pointer"
+                    className="h-10 px-3.5 rounded-xl border border-primary/20 bg-card/90 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-pointer shadow-xs transition-all"
                   >
                     <option value={3}>3 Questions</option>
                     <option value={5}>5 Questions</option>

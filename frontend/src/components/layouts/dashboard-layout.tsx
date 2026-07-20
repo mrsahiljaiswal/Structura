@@ -53,12 +53,13 @@ export function DashboardLayout({ children, breadcrumbs = [] }: DashboardLayoutP
         {/* Mobile Slide-Over Navigation Drawer */}
         <div
           className={cn(
-            "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border p-4 transition-transform duration-300 md:hidden flex flex-col justify-between shadow-2xl pt-20",
+            "fixed inset-y-0 left-0 z-50 w-72 bg-card/95 border-r border-border p-4 transition-transform duration-300 md:hidden flex flex-col justify-between shadow-2xl pt-16 backdrop-blur-2xl",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
           <Sidebar
             isCollapsed={false}
+            isMobile={true}
             onToggle={() => setIsMobileOpen(false)}
           />
         </div>

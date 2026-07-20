@@ -284,10 +284,16 @@ export default function LessonPage() {
             {lesson.title}
           </h1>
           <div className="flex items-center gap-4 text-xs font-semibold text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Est. 8 min read</span>
-            </span>
+            {(() => {
+              const wordCount = lesson?.content ? lesson.content.split(/\s+/).filter(Boolean).length : 0;
+              const accurateReadingMinutes = Math.max(1, Math.ceil(wordCount / 180));
+              return (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  <span>{accurateReadingMinutes} min read ({wordCount} words)</span>
+                </span>
+              );
+            })()}
           </div>
         </section>
 

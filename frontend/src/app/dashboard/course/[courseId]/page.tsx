@@ -179,23 +179,36 @@ export default function CourseDetailPage() {
   }, 0);
   const isCourseCompleted = totalLessons > 0 && completedLessonsCount >= totalLessons;
 
-  // Generate Flashcards list from course takeaways with strict deduplication
+  // Calculate accurate course reading time based on 180 words per minute
+  const totalCourseWords = course.chapters.reduce((sum, ch) => {
+    return sum + ch.lessons.reduce((lSum, l) => {
+      const text = l.content || "";
+      const words = text.split(/\s+/).filter(Boolean).length;
+      return lSum + (words > 0 ? words : 180);
+    }, 0);
+  }, 0);
+  const totalCourseMinutes = Math.max(1, Math.ceil(totalCourseWords / 180));
+
+  // Generate Flashcards list from course takeaways with strict deduplication & quality cap (No default 19 duplicate cards)
   const flashcardsList: Flashcard[] = [];
   const seenTexts = new Set<string>();
 
   course.chapters.forEach((ch) => {
     ch.lessons.forEach((l) => {
       if (l.key_takeaways && Array.isArray(l.key_takeaways)) {
+        let lessonCardCount = 0;
         l.key_takeaways.forEach((t, i) => {
+          if (lessonCardCount >= 2) return; // Cap at max 2 distinct cards per lesson
           const item = t as Record<string, unknown> | string;
           const text = typeof item === "string" ? item : String(item?.concept || item?.title || item?.takeaway || "");
           const cleanText = text.trim().toLowerCase();
 
-          if (cleanText && cleanText.length > 5 && !seenTexts.has(cleanText)) {
+          if (cleanText && cleanText.length > 10 && !seenTexts.has(cleanText)) {
             seenTexts.add(cleanText);
+            lessonCardCount++;
             flashcardsList.push({
               id: `${l.id}-${i}`,
-              front: `Concept in ${l.title}`,
+              front: `Key Concept: ${l.title}`,
               back: text.trim(),
               category: ch.title,
             });
@@ -308,6 +321,10 @@ export default function CourseDetailPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="info" className="bg-primary/10 text-primary border-primary/20">{course.difficulty || "Intermediate"}</Badge>
                 <Badge variant="outline" className="border-border text-foreground">{totalLessons} Lessons</Badge>
+                <Badge variant="outline" className="border-border text-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3 text-primary" />
+                  <span>{totalCourseMinutes >= 60 ? `${Math.floor(totalCourseMinutes / 60)}h ${totalCourseMinutes % 60}m` : `${totalCourseMinutes} mins`} Est. Reading</span>
+                </Badge>
               </div>
               <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight leading-tight">
                 {course.title}

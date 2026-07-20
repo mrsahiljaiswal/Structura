@@ -70,6 +70,20 @@ export function FloatingChatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  // Track active study time while Floating Chatbot is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const interval = setInterval(async () => {
+      try {
+        const { coursePersistence } = await import("@/lib/services/course-service");
+        coursePersistence.addStudyTime(10);
+      } catch (e) {
+        // ignore persistence errors
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen || coursesLoadedRef.current || !userId) return;
     coursesLoadedRef.current = true;

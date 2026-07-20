@@ -33,10 +33,11 @@ const menuItems = [
 
 interface SidebarProps {
   isCollapsed?: boolean;
+  isMobile?: boolean;
   onToggle?: () => void;
 }
 
-export function Sidebar({ isCollapsed: externalCollapsed, onToggle }: SidebarProps) {
+export function Sidebar({ isCollapsed: externalCollapsed, isMobile = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const [isInternalCollapsed, setIsInternalCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -77,8 +78,11 @@ export function Sidebar({ isCollapsed: externalCollapsed, onToggle }: SidebarPro
   return (
     <aside
       className={cn(
-        "fixed left-0 top-16 bottom-0 z-20 border-r border-sidebar-border bg-sidebar hidden md:flex flex-col justify-between overflow-hidden shadow-xs select-none transition-all duration-200 ease-in-out",
-        isCollapsed ? "w-16" : "w-[260px]"
+        "bg-sidebar flex flex-col justify-between overflow-hidden select-none transition-all duration-200 ease-in-out",
+        isMobile
+          ? "w-full h-full border-0 bg-transparent flex"
+          : "fixed left-0 top-16 bottom-0 z-20 border-r border-sidebar-border hidden md:flex",
+        !isMobile && (isCollapsed ? "w-16" : "w-[260px]")
       )}
     >
       {/* Upper Navigation Block */}

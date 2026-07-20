@@ -85,7 +85,7 @@ export function PipelineTimeline({
   return (
     <div className="w-full space-y-6">
       {/* Header Stat Area */}
-      <div className="flex items-center justify-between p-5 bg-card border border-border rounded-2xl shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 sm:p-5 bg-card border border-border rounded-2xl shadow-xs">
         <div>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             AI Pipeline Processing

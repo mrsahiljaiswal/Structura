@@ -87,7 +87,7 @@ export function ReaderLayout({
             />
           )}
 
-          <div className="w-full max-w-3xl px-8 py-20 lg:py-12 flex-1 animate-in fade-in duration-300">
+          <div className="w-full max-w-3xl px-4 sm:px-6 lg:px-8 pt-28 pb-16 lg:py-12 flex-1 animate-in fade-in duration-300">
             {children}
           </div>
         </main>

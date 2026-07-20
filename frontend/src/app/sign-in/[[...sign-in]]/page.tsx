@@ -101,23 +101,26 @@ export default function SignInPage() {
       </div>
 
       {/* Right Column: Sleek Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative bg-background">
-        <div className="w-full max-w-md space-y-6">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-12 relative bg-background/95 backdrop-blur-2xl">
+        {/* Mobile Background Ambient Glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-primary/20 rounded-full blur-3xl lg:hidden pointer-events-none" />
+
+        <div className="w-full max-w-md space-y-6 relative z-10">
           {/* Mobile Header Branding */}
-          <div className="flex lg:hidden items-center justify-center gap-2 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Sparkles className="h-5 w-5" />
+          <div className="flex lg:hidden items-center justify-center gap-2.5 mb-2">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+              <Sparkles className="h-5.5 w-5.5" />
             </div>
-            <span className="text-xl font-black text-foreground">Structura</span>
+            <span className="text-2xl font-black tracking-tight text-foreground">Structura</span>
           </div>
 
-          <div className="text-center lg:text-left space-y-1">
-            <h2 className="text-2xl font-extrabold text-foreground tracking-tight">Welcome Back</h2>
-            <p className="text-xs text-muted-foreground">Sign in to access your AI study workspace & courses</p>
+          <div className="text-center lg:text-left space-y-1.5">
+            <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Welcome Back</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">Sign in to access your AI study workspace & courses</p>
           </div>
 
           {/* Form Card Container */}
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-2xl backdrop-blur-xl">
+          <div className="rounded-3xl border border-primary/20 bg-card/80 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10">
             <SignIn
               fallbackRedirectUrl="/dashboard"
               forceRedirectUrl="/dashboard"
@@ -127,13 +130,13 @@ export default function SignInPage() {
                   card: "bg-transparent border-0 shadow-none p-0 w-full",
                   headerTitle: "hidden",
                   headerSubtitle: "hidden",
-                  socialButtonsBlockButton: "rounded-xl border border-border bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs h-10 transition-all",
-                  dividerLine: "bg-border",
-                  dividerText: "text-muted-foreground text-[10px] uppercase font-bold",
-                  formFieldLabel: "text-xs font-bold text-foreground",
-                  formFieldInput: "rounded-xl border border-border bg-background text-foreground text-xs font-medium h-10 focus:border-primary focus:ring-1 focus:ring-primary",
-                  formButtonPrimary: "rounded-xl bg-primary text-primary-foreground font-bold text-xs h-10 hover:opacity-90 shadow-md transition-all",
-                  footerActionLink: "text-primary font-bold text-xs hover:underline",
+                  socialButtonsBlockButton: "rounded-2xl border border-border/80 bg-secondary/60 hover:bg-secondary text-foreground font-bold text-xs h-11 transition-all shadow-xs",
+                  dividerLine: "bg-border/60",
+                  dividerText: "text-muted-foreground text-[10px] uppercase font-extrabold tracking-wider",
+                  formFieldLabel: "text-xs font-bold text-foreground mb-1",
+                  formFieldInput: "rounded-2xl border border-border/80 bg-background/80 text-foreground text-xs font-medium h-11 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all",
+                  formButtonPrimary: "rounded-2xl bg-primary text-primary-foreground font-extrabold text-xs h-11 hover:opacity-90 shadow-xl shadow-primary/25 transition-all cursor-pointer",
+                  footerActionLink: "text-primary font-extrabold text-xs hover:underline",
                   identityPreviewText: "text-foreground font-semibold text-xs",
                   formResendCodeLink: "text-primary font-bold text-xs",
                 },
