@@ -65,19 +65,21 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    cors_origins = [
+        "https://structura-psi.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+    ]
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "https://structura-psi.vercel.app",
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:3000",
-            "*",
-        ],
-        allow_origin_regex=r"https?://.*",
+        allow_origins=cors_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
 
     @app.exception_handler(Exception)
