@@ -19,8 +19,9 @@ Your job is to organize all points present in the PDF into a highly granular Cou
 GRANULAR SEGREGATION & NO REPETITION DIRECTIVE:
 1. Divide concepts into MORE modules, MORE chapters, and MORE dedicated lessons to maximize educational depth.
 2. Ensure strict segregation of topics: each chapter and lesson must focus on a distinct, dedicated sub-concept.
-3. ABSOLUTELY AVOID repeating the same concepts, points, or titles across different chapters.
+3. ABSOLUTELY AVOID repeating the same concepts, points, or titles across different chapters and lessons.
 4. Base every chapter and lesson title strictly on the actual relevant contents and sub-topics present in the uploaded PDF.
+5. Make sure the content under each heading is not too much, if that is the case create new heading, provided the content is independent
 
 CRITICAL: Respond ONLY with a single valid raw JSON object matching the schema below. Do NOT output markdown text, bullet points (* Module 1: ...), or prose commentary.
 
