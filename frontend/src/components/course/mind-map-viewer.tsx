@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 interface MindMapLesson {
   id: string;
   title: string;
+  position?: number;
   key_takeaways?: string[] | null;
 }
 
@@ -105,26 +106,33 @@ export function MindMapViewer({
       </div>
 
       {/* Main Concept Tree Container */}
-      <div className="p-6 sm:p-8 rounded-3xl border border-border bg-card shadow-lg relative overflow-hidden backdrop-blur-xl">
-        <div className="flex flex-col items-center space-y-8 max-w-5xl mx-auto">
+      <div className="p-6 sm:p-8 rounded-3xl border border-border/40 bg-card/80 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
+        <div className="flex flex-col items-center space-y-8 max-w-6xl mx-auto relative z-10">
           {/* Central Root Hub Node: Course Title */}
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className="relative z-10 px-8 py-5 rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-primary/10 via-accent/30 to-purple-500/10 text-center shadow-lg backdrop-blur-md max-w-lg w-full"
+            className="relative z-20 px-8 py-5 rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/20 via-accent/40 to-purple-500/20 text-center shadow-xl backdrop-blur-md max-w-lg w-full ring-1 ring-white/10"
           >
             <div className="flex items-center justify-center gap-2 text-xs font-extrabold uppercase tracking-wider text-primary mb-1">
-              <BookOpen className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 text-amber-400 animate-spin-slow" />
               <span>Core Course Knowledge Hub</span>
             </div>
             <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight">{courseTitle}</h2>
           </motion.div>
 
-          {/* Central Connecting Beam */}
-          <div className="w-0.5 h-8 bg-gradient-to-b from-primary via-indigo-400 to-border animate-pulse" />
+          {/* Connected SVG Flowchart Connectors */}
+          <div className="w-full flex justify-center items-center -my-4 pointer-events-none">
+            <svg className="w-full h-12 text-primary/40" viewBox="0 0 800 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 400 0 V 24 M 400 24 H 150 V 48 M 400 24 H 650 V 48" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
+              <circle cx="400" cy="24" r="4" fill="currentColor" />
+              <circle cx="150" cy="48" r="3" fill="currentColor" />
+              <circle cx="650" cy="48" r="3" fill="currentColor" />
+            </svg>
+          </div>
 
-          {/* Chapters Branch Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-            {chapters.map((ch) => {
+          {/* Chapters Branch Flowchart Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full relative z-10">
+            {chapters.map((ch, chIdx) => {
               const chCompleted = ch.lessons.filter((l) => completedLessonIds.includes(l.id)).length;
               const isChDone = chCompleted === ch.lessons.length && ch.lessons.length > 0;
 
@@ -140,51 +148,61 @@ export function MindMapViewer({
               return (
                 <motion.div
                   key={ch.id}
-                  whileHover={{ y: -3 }}
-                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all shadow-xs ${
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: chIdx * 0.1 }}
+                  whileHover={{ y: -4 }}
+                  className={`flex flex-col justify-between p-5 rounded-2xl border transition-all shadow-md relative group ${
                     isChDone
-                      ? "border-emerald-500/30 bg-emerald-500/[0.02]"
-                      : "border-border bg-card hover:border-primary/40"
+                      ? "border-emerald-500/40 bg-emerald-500/[0.04]"
+                      : "border-border/60 bg-card/90 hover:border-primary/50"
                   }`}
                 >
+                  {/* Flowchart Branch Line Top */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0.5 h-3 bg-primary/40" />
+
                   <div className="space-y-4">
                     {/* Chapter Header */}
                     <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
-                      <span className="text-xs font-black uppercase tracking-wider text-primary bg-accent border border-indigo-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                      <span className="text-xs font-black uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
                         <Layers className="h-3.5 w-3.5" />
                         Ch {ch.position}
                       </span>
-                      <span className={`text-xs font-bold ${isChDone ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                      <span className={`text-xs font-bold ${isChDone ? "text-emerald-400" : "text-muted-foreground"}`}>
                         {chCompleted}/{ch.lessons.length} Mastered
                       </span>
                     </div>
 
-                    <h4 className="text-sm font-bold text-foreground leading-snug">{ch.title}</h4>
+                    <h4 className="text-sm font-extrabold text-foreground leading-snug">{ch.title}</h4>
 
-                    {/* Children Lesson Nodes */}
-                    <div className="space-y-2 pt-1">
-                      {filteredLessons.map((l) => {
+                    {/* Children Lesson Nodes Flow */}
+                    <div className="space-y-2.5 pt-1 relative">
+                      {filteredLessons.map((l, lIdx) => {
                         const isDone = completedLessonIds.includes(l.id);
                         const isSelected = selectedLesson?.id === l.id;
 
                         return (
-                          <div
-                            key={l.id}
-                            onClick={() => setSelectedLesson({ id: l.id, title: l.title, chapterTitle: ch.title })}
-                            className={`flex items-center justify-between p-3 rounded-xl text-xs font-medium cursor-pointer transition-all border ${
-                              isSelected
-                                ? "border-primary bg-primary/10 text-primary shadow-xs"
-                                : isDone
-                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                                : "border-border/60 bg-secondary/50 hover:bg-secondary text-foreground"
-                            }`}
-                          >
-                            <span className="truncate pr-2 font-semibold">{l.title}</span>
-                            {isDone ? (
-                              <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                            ) : (
-                              <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            )}
+                          <div key={l.id} className="relative pl-3">
+                            {/* Lesson Node Connector */}
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-0.5 bg-primary/30" />
+
+                            <div
+                              onClick={() => setSelectedLesson({ id: l.id, title: l.title, chapterTitle: ch.title })}
+                              className={`flex items-center justify-between p-3 rounded-xl text-xs font-semibold cursor-pointer transition-all border ${
+                                isSelected
+                                  ? "border-primary bg-primary/15 text-primary shadow-md ring-1 ring-primary/40"
+                                  : isDone
+                                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                                  : "border-border/40 bg-secondary/40 hover:bg-secondary/80 text-foreground"
+                              }`}
+                            >
+                              <span className="truncate pr-2">{l.position || lIdx + 1}. {l.title}</span>
+                              {isDone ? (
+                                <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+                              ) : (
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              )}
+                            </div>
                           </div>
                         );
                       })}

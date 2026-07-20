@@ -57,6 +57,7 @@ export default function TutorPage() {
 
   // Practice Quiz State
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(5);
+  const [quizQuestionType, setQuizQuestionType] = useState<string>("multiple_choice");
   const [quizQuestions, setQuizQuestions] = useState<Array<{ question: string; options: string[]; answer: string; explanation: string }>>([]);
   const [userQuizAnswers, setUserQuizAnswers] = useState<Record<number, string>>({});
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
@@ -80,6 +81,8 @@ export default function TutorPage() {
     setIsLoading(true);
 
     try {
+      coursePersistence.addStudyTime(30);
+      coursePersistence.addActivity("chatbot", "Talked with AI Tutor", text.slice(0, 40));
       const history = messages
         .filter((m) => m.id !== "welcome")
         .map((m) => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text }));
@@ -376,11 +379,38 @@ Return strictly JSON array format without markdown fence:
                   <p className="text-xs text-muted-foreground">Generate a custom quiz grounded strictly in your enrolled course materials.</p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Course Context Selection */}
+                  <select
+                    value={selectedCourseId}
+                    onChange={(e) => setSelectedCourseId(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-border/40 bg-card text-xs font-bold text-foreground focus:outline-none cursor-pointer"
+                  >
+                    <option value="">All Enrolled Courses</option>
+                    {courses.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Question Type Selection */}
+                  <select
+                    value={quizQuestionType}
+                    onChange={(e) => setQuizQuestionType(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-border/40 bg-card text-xs font-bold text-foreground focus:outline-none cursor-pointer"
+                  >
+                    <option value="multiple_choice">Multiple Choice</option>
+                    <option value="true_false">True / False</option>
+                    <option value="mixed">Mixed Types</option>
+                    <option value="short_answer">Coding / Short Answer</option>
+                  </select>
+
+                  {/* Question Quantity Selection */}
                   <select
                     value={quizQuestionCount}
                     onChange={(e) => setQuizQuestionCount(Number(e.target.value))}
-                    className="h-9 px-3 rounded-xl border border-border bg-background text-xs font-bold focus:outline-none"
+                    className="h-9 px-3 rounded-xl border border-border/40 bg-card text-xs font-bold text-foreground focus:outline-none cursor-pointer"
                   >
                     <option value={3}>3 Questions</option>
                     <option value={5}>5 Questions</option>
@@ -390,10 +420,10 @@ Return strictly JSON array format without markdown fence:
                   <Button
                     onClick={handleGeneratePracticeQuiz}
                     disabled={isGeneratingQuiz}
-                    className="rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md px-4 h-9"
+                    className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md px-4 h-9 cursor-pointer"
                   >
                     {isGeneratingQuiz ? <RotateCcw className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                    <span>{quizQuestions.length > 0 ? "Generate More Questions" : "Generate Quiz"}</span>
+                    <span>{quizQuestions.length > 0 ? "Generate More" : "Generate Quiz"}</span>
                   </Button>
                 </div>
               </div>
@@ -401,7 +431,7 @@ Return strictly JSON array format without markdown fence:
               {quizQuestions.length > 0 ? (
                 <div className="space-y-6">
                   {quizQuestions.map((q, qIdx) => (
-                    <div key={qIdx} className="p-5 rounded-2xl border border-border bg-secondary/30 space-y-3">
+                    <div key={qIdx} className="p-5 rounded-2xl border border-border/50 bg-card/80 backdrop-blur-md space-y-3">
                       <div className="text-sm font-bold text-foreground">
                         {qIdx + 1}. {q.question}
                       </div>
@@ -411,12 +441,12 @@ Return strictly JSON array format without markdown fence:
                           const isSelected = userQuizAnswers[qIdx] === opt;
                           const isCorrect = opt === q.answer;
 
-                          let btnStyle = "border-border bg-card hover:bg-secondary/80 text-foreground";
+                          let btnStyle = "border-border/60 bg-secondary/40 hover:bg-secondary text-foreground";
                           if (quizSubmitted) {
                             if (isCorrect) btnStyle = "border-emerald-500 bg-emerald-500/10 text-emerald-400 font-bold";
                             else if (isSelected) btnStyle = "border-rose-500 bg-rose-500/10 text-rose-400 font-bold";
                           } else if (isSelected) {
-                            btnStyle = "border-primary bg-primary/10 text-primary font-bold";
+                            btnStyle = "border-primary bg-primary/15 text-primary font-bold shadow-xs";
                           }
 
                           return (
@@ -424,7 +454,7 @@ Return strictly JSON array format without markdown fence:
                               key={optIdx}
                               disabled={quizSubmitted}
                               onClick={() => setUserQuizAnswers((prev) => ({ ...prev, [qIdx]: opt }))}
-                              className={`w-full p-3 rounded-xl border text-left text-xs transition-all ${btnStyle}`}
+                              className={`w-full p-3 rounded-xl border text-left text-xs transition-all cursor-pointer ${btnStyle}`}
                             >
                               {opt}
                             </button>
@@ -433,9 +463,9 @@ Return strictly JSON array format without markdown fence:
                       </div>
 
                       {quizSubmitted && (
-                        <div className="p-3 rounded-xl bg-accent/40 border border-primary/20 text-xs text-muted-foreground">
+                        <div className="p-3.5 rounded-xl bg-accent/50 border border-primary/30 text-xs text-muted-foreground leading-relaxed">
                           <strong className="text-primary block mb-1">Explanation:</strong>
-                          {q.explanation}
+                          <MarkdownRenderer content={q.explanation} />
                         </div>
                       )}
                     </div>
@@ -451,7 +481,11 @@ Return strictly JSON array format without markdown fence:
                             if (userQuizAnswers[idx] === q.answer) correct++;
                           });
                           const pct = Math.round((correct / quizQuestions.length) * 100);
+                          const activeCourse = courses.find((c) => c.id === selectedCourseId);
+                          const courseName = activeCourse ? activeCourse.title : "All Courses";
                           coursePersistence.saveQuizScore(`tutor-challenge-${Date.now()}`, pct);
+                          coursePersistence.addActivity("tutor_quiz", "Practiced AI Tutor Quiz", `${pct}% Score on ${courseName}`);
+                          coursePersistence.addStudyTime(120);
                         }
                       }}
                       className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md"

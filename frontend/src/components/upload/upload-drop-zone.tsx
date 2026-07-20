@@ -38,13 +38,53 @@ export function UploadDropZone() {
   const router = useRouter();
   const { user } = useUser();
   const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadState, setUploadState] = useState<UploadState>({
-    status: "idle",
-    file: null,
-    progress: 0,
-    error: null,
-    processingResult: null,
+  const [uploadState, setUploadState] = useState<UploadState>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("structura_active_upload_state");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.status === "uploading" || parsed.status === "processing") {
+            return {
+              status: parsed.status,
+              file: parsed.fileName ? ({ name: parsed.fileName } as File) : null,
+              progress: parsed.progress || 85,
+              error: null,
+              processingResult: parsed.processingResult || null,
+            };
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
+    }
+    return {
+      status: "idle",
+      file: null,
+      progress: 0,
+      error: null,
+      processingResult: null,
+    };
   });
+
+  // Sync active processing state to sessionStorage
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (uploadState.status === "processing" || uploadState.status === "uploading") {
+        sessionStorage.setItem(
+          "structura_active_upload_state",
+          JSON.stringify({
+            status: uploadState.status,
+            fileName: uploadState.file?.name || "PDF Document",
+            progress: uploadState.progress,
+            processingResult: uploadState.processingResult,
+          })
+        );
+      } else if (uploadState.status === "success" || uploadState.status === "idle") {
+        sessionStorage.removeItem("structura_active_upload_state");
+      }
+    }
+  }, [uploadState]);
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -102,6 +142,7 @@ export function UploadDropZone() {
     if (!uploadState.file) return;
 
     setUploadState((prev) => ({ ...prev, status: "uploading" }));
+    coursePersistence.addActivity("upload", "Processing PDF Upload", uploadState.file.name);
 
     try {
       const formData = new FormData();
@@ -132,6 +173,8 @@ export function UploadDropZone() {
             progress: 100,
             processingResult: response,
           }));
+
+          coursePersistence.addActivity("upload", "Generated Course", response.filename);
 
           // Add generated course ID to client registry
           if (response?.course_id) {

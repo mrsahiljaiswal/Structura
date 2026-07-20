@@ -179,19 +179,24 @@ export default function CourseDetailPage() {
   }, 0);
   const isCourseCompleted = totalLessons > 0 && completedLessonsCount >= totalLessons;
 
-  // Generate Flashcards list from course takeaways
+  // Generate Flashcards list from course takeaways with strict deduplication
   const flashcardsList: Flashcard[] = [];
+  const seenTexts = new Set<string>();
+
   course.chapters.forEach((ch) => {
     ch.lessons.forEach((l) => {
       if (l.key_takeaways && Array.isArray(l.key_takeaways)) {
         l.key_takeaways.forEach((t, i) => {
           const item = t as Record<string, unknown> | string;
-          const text = typeof item === "string" ? item : String(item?.concept || item?.title || "");
-          if (text) {
+          const text = typeof item === "string" ? item : String(item?.concept || item?.title || item?.takeaway || "");
+          const cleanText = text.trim().toLowerCase();
+
+          if (cleanText && cleanText.length > 5 && !seenTexts.has(cleanText)) {
+            seenTexts.add(cleanText);
             flashcardsList.push({
               id: `${l.id}-${i}`,
-              front: `Key Concept in ${l.title}`,
-              back: text,
+              front: `Concept in ${l.title}`,
+              back: text.trim(),
               category: ch.title,
             });
           }

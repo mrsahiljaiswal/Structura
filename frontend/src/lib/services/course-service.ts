@@ -11,6 +11,14 @@ interface StreakInfo {
   lastDate: string | null;
 }
 
+export interface ActivityLogItem {
+  id: string;
+  type: "chatbot" | "tutor_quiz" | "lesson_read" | "course_completed" | "note_saved" | "upload";
+  title: string;
+  subtitle: string;
+  time: string;
+}
+
 interface UserProgress {
   pinned_courses: { id: string; title: string }[];
   favorite_courses: string[];
@@ -21,6 +29,7 @@ interface UserProgress {
   lesson_notes: Record<string, string>;
   streak_count?: number;
   streak_last_date?: string | null;
+  activities?: ActivityLogItem[];
 }
 
 class CoursePersistenceService {
@@ -34,6 +43,7 @@ class CoursePersistenceService {
     lesson_notes: {},
     streak_count: 0,
     streak_last_date: null,
+    activities: [],
   };
   private isLoaded = false;
   private loadingPromise: Promise<void> | null = null;
@@ -259,6 +269,26 @@ class CoursePersistenceService {
     const scores = this.getQuizScores();
     scores[lessonId] = scorePercent;
     this.progress.quiz_scores = scores;
+    await this.saveToServer();
+    window.dispatchEvent(new Event("storage"));
+  }
+
+  // Activity Logging
+  getActivities(): ActivityLogItem[] {
+    return this.progress.activities || [];
+  }
+
+  async addActivity(type: ActivityLogItem["type"], title: string, subtitle: string) {
+    const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const item: ActivityLogItem = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      type,
+      title,
+      subtitle,
+      time,
+    };
+    const current = [item, ...(this.progress.activities || [])].slice(0, 30);
+    this.progress.activities = current;
     await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }

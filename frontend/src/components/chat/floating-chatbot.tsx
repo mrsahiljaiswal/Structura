@@ -121,6 +121,15 @@ export function FloatingChatbot() {
         timestamp: Date.now(),
       };
 
+      // Track 30 seconds of study time and log activity
+      try {
+        const { coursePersistence } = await import("@/lib/services/course-service");
+        coursePersistence.addStudyTime(30);
+        coursePersistence.addActivity("chatbot", "Talked with AI Assistant", text.slice(0, 40));
+      } catch (e) {
+        // ignore persistence errors
+      }
+
       setMessages((prev) => [...prev, userMessage]);
       setInput("");
       setIsLoading(true);

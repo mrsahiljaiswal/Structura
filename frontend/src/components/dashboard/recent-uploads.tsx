@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Clock, CheckCircle, FilePlus, Trophy } from "lucide-react";
+import { Clock, CheckCircle, FilePlus, Trophy, Bot, HelpCircle, BookOpen } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Course } from "@/hooks/use-courses";
 import { coursePersistence } from "@/lib/services/course-service";
@@ -15,34 +15,55 @@ interface RecentActivityProps {
 
 export function RecentUploadsSection({ courses }: RecentActivityProps) {
   const completedLessons = coursePersistence.getCompletedLessons();
+  const loggedActivities = coursePersistence.getActivities();
 
   // Construct a list of recent activities dynamically
   const activities: {
     id: string;
-    type: "upload" | "complete" | "achievement";
+    type: string;
     title: string;
     subtitle: string;
     time: string;
     icon: React.ReactNode;
   }[] = [];
 
-  // 1. Add generated courses
-  courses.slice(0, 2).forEach((c) => {
+  // 1. Add logged activities from coursePersistence
+  loggedActivities.forEach((act) => {
+    let icon = <CheckCircle className="h-4 w-4 text-emerald-400" />;
+    if (act.type === "chatbot") icon = <Bot className="h-4 w-4 text-purple-400" />;
+    else if (act.type === "tutor_quiz") icon = <HelpCircle className="h-4 w-4 text-amber-400" />;
+    else if (act.type === "lesson_read") icon = <BookOpen className="h-4 w-4 text-blue-400" />;
+    else if (act.type === "upload") icon = <FilePlus className="h-4 w-4 text-indigo-400" />;
+
     activities.push({
-      id: `course-${c.id}`,
-      type: "upload",
-      title: `Generated Course`,
-      subtitle: c.title,
-      time: "Recent",
-      icon: <FilePlus className="h-4 w-4 text-indigo-400" />,
+      id: act.id,
+      type: act.type,
+      title: act.title,
+      subtitle: act.subtitle,
+      time: act.time || "Recent",
+      icon,
     });
   });
 
-  // 2. Add completed lessons details
+  // 2. Add generated courses
+  courses.slice(0, 2).forEach((c) => {
+    if (!activities.some((a) => a.subtitle === c.title)) {
+      activities.push({
+        id: `course-${c.id}`,
+        type: "upload",
+        title: `Generated Course`,
+        subtitle: c.title,
+        time: "Recent",
+        icon: <FilePlus className="h-4 w-4 text-indigo-400" />,
+      });
+    }
+  });
+
+  // 3. Add completed lessons details
   courses.forEach((c) => {
     c.chapters.forEach((ch) => {
       ch.lessons.forEach((l) => {
-        if (completedLessons.includes(l.id)) {
+        if (completedLessons.includes(l.id) && !activities.some((a) => a.id === `lesson-${l.id}`)) {
           activities.push({
             id: `lesson-${l.id}`,
             type: "complete",
