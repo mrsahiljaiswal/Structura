@@ -139,6 +139,17 @@ async def chat_with_tutor(
         except Exception as db_err:
             logger.warning(f"User progress DB notice: {db_err}")
 
+    async def save_to_db(text_to_save: str):
+        if user_prog_record:
+            try:
+                current_history = list(user_prog_record.chat_history or [])
+                current_history.append({"role": "user", "content": request.message})
+                current_history.append({"role": "assistant", "content": text_to_save})
+                user_prog_record.chat_history = current_history
+                await db.commit()
+            except Exception as save_err:
+                logger.warning(f"Failed to save chat history: {save_err}")
+
     # 4. Semantic Grounding Check
     top_score = 0.0
     for c in courses:
@@ -355,5 +366,9 @@ async def chat_with_tutor(
     await save_to_db(fallback_reply)
     return ChatResponse(
         reply=fallback_reply,
-        suggested_actions=["Explain step-by-step", "Take a 3-question quiz", "Summarize chapter"]
+        response=fallback_reply,
+        suggested_actions=["Explain step-by-step", "Take a 3-question quiz", "Summarize chapter"],
+        sources=[c.title for c in courses[:2]],
+        knowledge_mode=mode,
+        grounding_mode=mode,
     )
