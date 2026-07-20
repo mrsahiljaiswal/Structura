@@ -294,7 +294,7 @@ async def chat_with_tutor(
             await db.commit()
 
     # 6. Execute LLM call via LLMClient (using dedicated CHAT_MODEL)
-    chat_model_name = os.environ.get("CHAT_MODEL") or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
+    chat_model_name = os.environ.get("CHAT_MODEL") or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
     llm = LLMClient(model=chat_model_name)
 
     try:
@@ -366,13 +366,31 @@ async def chat_with_tutor(
             "💡 *Great work staying consistent! Ask me to test your knowledge with a quiz or summarize a chapter to keep your streak going.*"
         )
     elif is_quiz_request:
+        # Dynamic fallback quiz constructed from user's actual course titles & lessons
+        target_course_title = "Your Enrolled Course"
+        target_lesson_title = "Core Principles"
+        if courses:
+            c = courses[0]
+            target_course_title = getattr(c, "title", None) or getattr(c, "course_title", "Enrolled Course")
+            for ch in getattr(c, "chapters", []) or []:
+                for l in getattr(ch, "lessons", []) or []:
+                    if getattr(l, "title", None):
+                        target_lesson_title = getattr(l, "title")
+                        break
+                if target_lesson_title != "Core Principles":
+                    break
+
         fallback_reply = (
-            "### 📝 Practice Quiz (Lesson Checkup)\n\n"
-            "**Question 1**: Which data structure maintains sorted keys and provides O(log N) search operations?\n"
-            "• A) Hash Table\n• B) B-Tree / Binary Search Tree\n• C) Stack\n• D) Queue\n\n"
-            "**Correct Answer**: **B) B-Tree / Binary Search Tree**\n"
-            "*Explanation*: As covered in your lesson materials, tree-based indexing structures maintain sorted keys and provide logarithmic time complexity for lookups and insertions.\n\n"
-            "*(Ask me for more practice questions or a chapter summary!)*"
+            f"### 📝 Practice Quiz: {target_course_title}\n"
+            f"*Topic: {target_lesson_title}*\n\n"
+            f"**Question 1**: What is the primary objective of studying **{target_lesson_title}** within **{target_course_title}**?\n\n"
+            f"• A) To master foundational concepts and practical application\n"
+            f"• B) To memorize raw syntax without context\n"
+            f"• C) To skip core definitions\n"
+            f"• D) None of the above\n\n"
+            f"**Correct Answer**: **A) To master foundational concepts and practical application**\n"
+            f"*Explanation*: As emphasized in **{target_course_title}**, understanding core principles enables you to solve complex problems and build a strong mental model.\n\n"
+            "*(Ask me for another practice question or select a specific lesson from your course!)*"
         )
     elif is_summary_request:
         # Rank all Courses and Chapters by semantic relevance score
