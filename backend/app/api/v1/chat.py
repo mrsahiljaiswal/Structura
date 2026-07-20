@@ -121,6 +121,14 @@ async def chat_with_tutor(
     except Exception as db_err:
         logger.warning(f"Course DB retrieval notice: {db_err}")
 
+    # Build course structure overview summary
+    overview_lines = []
+    for c in courses:
+        overview_lines.append(f"• Course: {getattr(c, 'title', 'Untitled')}")
+        for ch in getattr(c, "chapters", []) or []:
+            overview_lines.append(f"  - Chapter: {getattr(ch, 'title', 'Untitled')}")
+    course_structure_overview = "\n".join(overview_lines) if overview_lines else "No enrolled courses available."
+
     # 2. Strict Security Check: If a specific course_id is requested, ensure user owns it
     if request.course_id and courses:
         matching_course = next((c for c in courses if str(c.id) == str(request.course_id)), None)
