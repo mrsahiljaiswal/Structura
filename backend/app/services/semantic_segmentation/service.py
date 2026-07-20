@@ -41,13 +41,30 @@ class SemanticSegmentationService:
         return index
 
     def _build_unit(self, concept: Concept, node_index: dict[str, StructureNode]) -> LearningUnit:
+        seen = set()
         text_parts = []
+
         for node_id in concept.source_node_ids:
             node = node_index.get(node_id)
             if node is None:
                 continue
-            text_parts.append(self._flatten_text(node))
-        combined_text = "\n\n".join(p for p in text_parts if p)
+
+            text = self._flatten_text(node).strip()
+
+            if not text:
+                continue
+
+            # Prevent duplicate paragraphs
+            if text in seen:
+                continue
+
+            seen.add(text)
+            text_parts.append(text)
+
+        combined_text = "\n\n".join(text_parts)
+        # Prevent excessively large learning units
+        if len(combined_text) > TEXT_CHAR_CAP:
+            combined_text = combined_text[:TEXT_CHAR_CAP]
         if not combined_text.strip():
             combined_text = (
                 f"Concept: {concept.name}\n"

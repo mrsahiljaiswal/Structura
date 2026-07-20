@@ -8,28 +8,38 @@ from app.services.semantic_segmentation.schema import LearningUnit, LearningUnit
 from .exceptions import LessonAuthoringError
 from .schema import Lesson
 
-SYSTEM_PROMPT = """You are the Verbatim Structuring & Lesson Authoring Engine in a document-intelligence pipeline.
+SYSTEM_PROMPT = """
+You are the Lesson Authoring Engine for an AI-powered educational platform.
 
-STRICT VERBATIM PRESERVATION, RICH SUB-HEADINGS & CONCEPT SEGREGATION DIRECTIVE:
-1. You are provided with the COMPLETE source text extracted from the uploaded PDF document for this lesson.
-2. Divide, structure, and categorize the text using MULTIPLE RELEVANT MARKDOWN SUB-HEADINGS (##, ###) and MULTIPLE DETAILED PARAGRAPHS.
-3. STRICT CONCEPT SEGREGATION: Segregate sub-concepts under distinct, dedicated sub-headings. Avoid repeating the same points across different headings or sections.
-4. ABSOLUTELY NO TEXT OMISSION, DEDUCTION, OR SHORTENING: You MUST include EACH AND EVERY sentence, detail, word, code block, formula, and point from the source text. DO NOT summarize away details or omit paragraphs.
-5. ABSOLUTELY NO NEW TEXT OR OUTSIDE GENERATION: Do NOT invent outside examples, extra ungrounded analogies, or new commentary. Retain the exact facts and wording from the PDF.
-6. 100% TEXT PRESERVATION: The 'theory' section MUST contain the complete, unabridged, comprehensive content of the source PDF section formatted into rich Markdown headings and paragraphs.
+Your task is to transform the provided source material into a well-structured lesson.
 
-Respond with ONLY a JSON object, no prose, no markdown fences:
+STRICT RULES
+
+1. Use ONLY the provided source material.
+2. Never invent facts, examples, analogies or definitions.
+3. Preserve all important concepts required for this lesson.
+4. DO NOT repeat concepts already covered in prerequisite lessons.
+5. Focus ONLY on the current lesson objectives.
+6. If the source contains unrelated information, ignore it.
+7. Organize the lesson using meaningful Markdown headings (##, ###).
+8. Merge repeated explanations into one comprehensive explanation.
+9. Improve readability while preserving meaning.
+10. Keep technical terms exactly as they appear.
+
+Return ONLY JSON.
+
 {
-  "overview": "Direct, comprehensive overview framing the PDF section text",
-  "theory": "COMPLETE UNABRIDGED VERBATIM SOURCE PDF TEXT, fully categorized and formatted into MULTIPLE RELEVANT MARKDOWN SUB-HEADINGS (##, ###) and DETAILED PARAGRAPHS without omitting any words, facts, or details",
-  "definitions": ["exact term: definition directly from PDF text", "..."],
-  "examples": ["worked example or code block directly from PDF text", "..."],
-  "analogies": ["exact analogy from PDF text if present, else []"],
-  "misconceptions": ["exact misconception from PDF text if present, else []"],
-  "applications": ["exact application from PDF text if present, else []"],
-  "summary": "Full section summary directly from PDF text",
-  "key_takeaways": ["exact key takeaway points directly from PDF text", "..."]
-}"""
+  "overview": "...",
+  "theory": "...",
+  "definitions": [],
+  "examples": [],
+  "analogies": [],
+  "misconceptions": [],
+  "applications": [],
+  "summary": "...",
+  "key_takeaways": []
+}
+"""
 
 
 class LessonAuthoringService:
@@ -83,17 +93,66 @@ class LessonAuthoringService:
 
     @staticmethod
     def _build_prompt(planned_lesson: PlannedLesson, source_units: list[LearningUnit], prereq_titles: list[str]) -> str:
-        units_text = "\n\n".join(
-            f"--- Learning unit: {u.topic} ---\nSummary: {u.summary}\nKeywords: {', '.join(u.keywords)}\n\n{u.text}"
-            for u in source_units
-        )
-        return (
-            f"Lesson title: {planned_lesson.title}\n"
-            f"Learning objectives: {planned_lesson.learning_objectives}\n"
-            f"Difficulty: {planned_lesson.difficulty}\n"
-            f"Prerequisite lessons already completed: {prereq_titles}\n\n"
-            f"{units_text}"
-        )
+        @staticmethod
+        def _build_prompt(
+            planned_lesson: PlannedLesson,
+            source_units: list[LearningUnit],
+            prereq_titles: list[str],
+        ) -> str:
+
+            units_text = "\n\n".join(
+                f"""
+        ### Learning Unit
+
+        Topic:
+        {u.topic}
+
+        Summary:
+        {u.summary}
+
+        Keywords:
+        {", ".join(u.keywords)}
+
+        Content:
+        {u.text}
+        """
+                for u in source_units
+            )
+
+            objectives = "\n".join(
+                f"- {obj}" for obj in planned_lesson.learning_objectives
+            )
+
+            prereqs = ", ".join(prereq_titles) if prereq_titles else "None"
+
+            return f"""
+        Lesson Title:
+        {planned_lesson.title}
+
+        Learning Objectives:
+        {objectives}
+
+        Difficulty:
+        {planned_lesson.difficulty}
+
+        Previously Covered Lessons:
+        {prereqs}
+
+        Instructions:
+
+        - Write ONLY about this lesson.
+        - Cover ALL learning objectives.
+        - Ignore unrelated content.
+        - Merge duplicate explanations into one.
+        - Do NOT repeat concepts already covered in prerequisite lessons.
+        - Preserve factual accuracy.
+        - Improve grammar and readability.
+        - Organize the lesson with Markdown headings (##, ###).
+
+        Source Material
+
+        {units_text}
+        """
 
     @staticmethod
     def _to_lesson(planned_lesson: PlannedLesson, data: dict) -> Lesson:
