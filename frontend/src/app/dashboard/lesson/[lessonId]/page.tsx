@@ -38,6 +38,7 @@ interface Lesson {
   key_takeaways?: string[] | null;
   summary?: string | null;
   position: number;
+  course_id?: string;
 }
 
 export default function LessonPage() {
@@ -84,11 +85,19 @@ export default function LessonPage() {
     enabled: !!lessonId && !isLoading && !!lesson,
   });
 
-  // 2. Scan all cached courses to locate which course owns this lesson
+  // 2. Scan courses to locate the EXACT course that owns this lesson
   const { courses, isLoading: isCoursesLoading } = useCourses();
-  const activeCourse = courses.find((c) =>
-    c.chapters?.some((ch) => ch.lessons?.some((l) => String(l.id).toLowerCase() === String(lessonId).toLowerCase()))
-  ) || courses[0];
+  const queryCourseId = searchParams?.get("course_id");
+  const targetCourseId = lesson?.course_id || queryCourseId;
+
+  const activeCourse =
+    (targetCourseId
+      ? courses.find((c) => String(c.id).toLowerCase() === String(targetCourseId).toLowerCase())
+      : null) ||
+    courses.find((c) =>
+      c.chapters?.some((ch) => ch.lessons?.some((l) => String(l.id).toLowerCase() === String(lessonId).toLowerCase()))
+    ) ||
+    (courses.length > 0 ? courses[0] : null);
 
   // Handle marking complete
   const markComplete = async () => {

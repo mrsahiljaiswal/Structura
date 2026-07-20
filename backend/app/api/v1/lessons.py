@@ -112,13 +112,16 @@ async def get_lesson_quiz(lesson_id: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to generate quiz: {str(e)}")
 
 
+from sqlalchemy.orm import selectinload
+
 @router.get("/lessons/{lesson_id}", response_model=LessonOut)
 async def get_lesson(lesson_id: str, db: AsyncSession = Depends(get_db)):
-    stmt = select(LessonModel).where(LessonModel.id == lesson_id)
+    stmt = select(LessonModel).options(selectinload(LessonModel.chapter)).where(LessonModel.id == lesson_id)
     res = await db.execute(stmt)
     lesson = res.scalars().first()
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
+    course_id = lesson.chapter.course_id if lesson.chapter else None
     return LessonOut(
         id=lesson.id,
         title=lesson.title,
@@ -127,6 +130,7 @@ async def get_lesson(lesson_id: str, db: AsyncSession = Depends(get_db)):
         key_takeaways=lesson.key_takeaways,
         summary=lesson.summary,
         position=lesson.position,
+        course_id=course_id,
     )
 
 

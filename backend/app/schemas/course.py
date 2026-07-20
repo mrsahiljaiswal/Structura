@@ -11,6 +11,7 @@ class LessonOut(BaseModel):
     key_takeaways: Optional[list] = None
     summary: Optional[str] = None
     position: int
+    course_id: Optional[UUID] = None
 
     class Config:
         from_attributes = True
