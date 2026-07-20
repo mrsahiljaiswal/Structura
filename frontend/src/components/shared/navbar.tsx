@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { Breadcrumb } from "./breadcrumb";
 import { SearchBar } from "./search-bar";
@@ -13,14 +13,27 @@ import { Button } from "@/components/ui/button";
 
 interface NavbarProps {
   onSearchTrigger: () => void;
+  onMobileMenuToggle?: () => void;
   breadcrumbs?: { label: string; href?: string }[];
 }
 
-export function Navbar({ onSearchTrigger, breadcrumbs = [] }: NavbarProps) {
+export function Navbar({ onSearchTrigger, onMobileMenuToggle, breadcrumbs = [] }: NavbarProps) {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card/90 backdrop-blur-md px-6 flex items-center justify-between shadow-xs">
+    <nav className="fixed top-0 left-0 right-0 z-30 h-16 border-b border-sidebar-border bg-card/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between shadow-xs">
       {/* Left: Branding & Breadcrumbs */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
+        {onMobileMenuToggle && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMobileMenuToggle}
+            className="md:hidden rounded-xl text-muted-foreground hover:text-foreground"
+            aria-label="Toggle mobile menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-md">
             <span className="text-sm font-bold text-white">S</span>

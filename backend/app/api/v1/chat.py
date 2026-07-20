@@ -109,10 +109,15 @@ async def chat_with_tutor(
     """
     mode = request.knowledge_mode or "both"
 
-    # 1. Query published courses from DB with eager loading
-    course_stmt = select(CourseModel).options(
-        selectinload(CourseModel.chapters).selectinload(ChapterModel.lessons)
-    )
+    # 1. Query published courses from DB belonging STRICTLY to current user account
+    if x_user_id:
+        course_stmt = select(CourseModel).where(CourseModel.user_id == x_user_id).options(
+            selectinload(CourseModel.chapters).selectinload(ChapterModel.lessons)
+        )
+    else:
+        course_stmt = select(CourseModel).options(
+            selectinload(CourseModel.chapters).selectinload(ChapterModel.lessons)
+        )
     course_res = await db.execute(course_stmt)
     courses = course_res.scalars().unique().all()
 
@@ -148,14 +153,14 @@ async def chat_with_tutor(
     for c in courses:
         for ch in getattr(c, "chapters", []) or []:
             for l in getattr(ch, "lessons", []) or []:
-                text = f"{getattr(c, 'title', '')} {getattr(ch, 'title', '')} {getattr(l, 'title', '')} {getattr(l, 'summary', '')}"
+                text = f"{getattr(c, 'title', '')} {getattr(ch, 'title', '')} {getattr(l, 'title', '')} {getattr(l, 'summary', '')} {getattr(l, 'content', '')[:500]}"
                 s = calculate_semantic_score(request.message, text)
                 if s > top_course_score:
                     top_course_score = s
 
     # Enforce COURSES ONLY refusal if query is unrelated to courses and not a system command
     is_system_cmd = is_next_study_request or is_progress_request or is_quiz_request or is_summary_request
-    if mode == "courses_only" and top_course_score < 0.12 and not is_system_cmd:
+    if mode == "courses_only" and top_course_score < 0.10 and not is_system_cmd:
         refusal_msg = (
             f"⚠️ **Courses Only Mode Active**\n\n"
             f"Your question **\"{request.message}\"** does not appear in your enrolled course materials.\n\n"
@@ -166,7 +171,7 @@ async def chat_with_tutor(
             suggested_actions=["Switch to Courses + Web", "Summarize my course", "Take a quiz"]
         )
 
-    # 3. Extract Full Lesson Knowledge Context for Active Course (or all courses)
+    # 4. Extract Full Lesson Knowledge Context for Active Selected Course
     selected_courses = [c for c in courses if str(c.id) == str(request.course_id)] if request.course_id else courses
     if not selected_courses and courses:
         selected_courses = courses
@@ -187,16 +192,16 @@ async def chat_with_tutor(
                 l_content = getattr(l, "content", "") or ""
                 l_summary = getattr(l, "summary", "") or ""
 
-                text_block = f"### [Course: {c_title} | Chapter: {ch_title} | Lesson: {l_title}]\n"
+                text_block = f"=== [Course: {c_title} | Chapter: {ch_title} | Lesson: {l_title}] ===\n"
                 if l_summary:
                     text_block += f"Summary: {l_summary}\n"
                 if l_content:
-                    text_block += f"Full Content:\n{l_content[:1500]}\n"
+                    text_block += f"Full Lesson Content:\n{l_content}\n"
                 lesson_knowledge_blocks.append(text_block)
 
             chapter_summaries.append(f"• Chapter: {ch_title}\n  Lessons: {', '.join(lesson_titles)}")
 
-    full_lesson_context = "\n\n".join(lesson_knowledge_blocks[:6]) if lesson_knowledge_blocks else "No specific lesson materials uploaded yet."
+    full_lesson_context = "\n\n".join(lesson_knowledge_blocks) if lesson_knowledge_blocks else "No specific lesson materials uploaded yet."
     course_structure_overview = "\n".join(chapter_summaries) if chapter_summaries else "No chapter structure available."    # 4. Construct grounded system prompt with mode detection
     msg_lower = request.message.lower()
     is_next_study_request = any(k in msg_lower for k in ["what should i study", "next lesson", "next course", "what to study", "where to continue", "recommend next"])

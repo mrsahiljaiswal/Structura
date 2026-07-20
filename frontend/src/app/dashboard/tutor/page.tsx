@@ -16,6 +16,7 @@ import { useCourses } from "@/hooks/use-courses";
 import api from "@/lib/axios";
 import { Sparkles, MessageSquare, BookOpen, Brain, Zap, HelpCircle, CheckCircle2, RotateCcw } from "lucide-react";
 
+import { coursePersistence } from "@/lib/services/course-service";
 import { MarkdownRenderer } from "@/components/reader/markdown-renderer";
 
 export default function TutorPage() {
@@ -442,7 +443,17 @@ Return strictly JSON array format without markdown fence:
 
                   {!quizSubmitted ? (
                     <Button
-                      onClick={() => setQuizSubmitted(true)}
+                      onClick={() => {
+                        setQuizSubmitted(true);
+                        if (quizQuestions.length > 0) {
+                          let correct = 0;
+                          quizQuestions.forEach((q, idx) => {
+                            if (userQuizAnswers[idx] === q.answer) correct++;
+                          });
+                          const pct = Math.round((correct / quizQuestions.length) * 100);
+                          coursePersistence.saveQuizScore(`tutor-challenge-${Date.now()}`, pct);
+                        }
+                      }}
                       className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md"
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />

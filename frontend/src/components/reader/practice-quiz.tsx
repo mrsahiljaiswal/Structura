@@ -84,10 +84,11 @@ export function PracticeQuiz({
 
   const handleNext = () => {
     if (isLastQuestion) {
+      const computedCorrect = questions.reduce((acc, q) => acc + (checkIsCorrect(q) ? 1 : 0), 0);
+      const computedPercent = Math.round((computedCorrect / totalQuestions) * 100);
+      const targetId = lessonId || `quiz-${Date.now()}`;
+      coursePersistence.saveQuizScore(targetId, computedPercent);
       setShowResults(true);
-      if (lessonId) {
-        coursePersistence.saveQuizScore(lessonId, scorePercent);
-      }
     } else {
       setCurrentIndex((prev) => prev + 1);
     }
