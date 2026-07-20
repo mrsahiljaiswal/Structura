@@ -15,20 +15,25 @@ from app.services.course_planner_service import get_course_planner_service
 from app.services.lesson_generation_service import get_lesson_generation_service
 from app.services.course_builder_service import persist_course_sync, ensure_tables
 
+import tempfile
+
 logger = logging.getLogger(__name__)
 
 
 class DocumentService:
     """Service for managing document operations."""
     
-    UPLOADS_DIR = Path("uploads")
+    UPLOADS_DIR = Path(tempfile.gettempdir()) / "structura_uploads"
     ALLOWED_EXTENSIONS = {".pdf"}
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
     
     def __init__(self):
         """Initialize the service and ensure uploads directory exists."""
         self.repository = get_document_repository()
-        self.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            self.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            logger.warning(f"Could not create UPLOADS_DIR {self.UPLOADS_DIR}: {e}")
     
     def validate_file(self, filename: str, file_size: int) -> Optional[str]:
         """Validate a file before processing.
