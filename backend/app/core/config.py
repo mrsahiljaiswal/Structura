@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "app"
+    DATABASE_URL: str | None = None
 
     # Pool tuning; sane defaults for a small production deployment.
     DB_POOL_SIZE: int = 5
@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         """Async SQLAlchemy connection string (uses the asyncpg driver)."""
+        if self.DATABASE_URL:
+            db_url = self.DATABASE_URL.strip()
+            if db_url.startswith("postgres://"):
+                return db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif db_url.startswith("postgresql://"):
+                return db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return db_url
         return str(
             PostgresDsn.build(
                 scheme="postgresql+asyncpg",
@@ -77,7 +84,14 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI_SYNC(self) -> str:
-        """Sync connection string, used by Alembic for migrations."""
+        """Sync connection string, used by Alembic and synchronous tasks."""
+        if self.DATABASE_URL:
+            db_url = self.DATABASE_URL.strip()
+            if db_url.startswith("postgres://"):
+                return db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+                return db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            return db_url
         return str(
             PostgresDsn.build(
                 scheme="postgresql+psycopg2",
