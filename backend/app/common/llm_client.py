@@ -10,7 +10,7 @@ import requests
 
 from .exceptions import LLMError
 
-DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 
 logger = logging.getLogger(__name__)
@@ -78,12 +78,8 @@ class LLMClient:
         raise LLMError(f"All available LLM providers failed: {'; '.join(errors)}")
 
     def _call_gemini(self, system: str, user: str) -> str:
-        # Normalize model aliases to official Gemini API endpoint names
-        model_name = self.gemini_model
-        if "2.5-flash" in model_name or "3.1-flash" in model_name:
-            model_name = "gemini-2.0-flash-lite"
-
-        models_to_try = [model_name, "gemini-3.1-flash-lite","gemini-2.1-flash-lite"]
+        model_name = self.gemini_model or "gemini-2.5-flash"
+        models_to_try = [model_name, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"]
         seen = set()
         models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
 
