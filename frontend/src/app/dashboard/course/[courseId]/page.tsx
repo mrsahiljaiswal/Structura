@@ -174,6 +174,11 @@ export default function CourseDetailPage() {
     resumeLessonId = course.chapters[0].lessons[0].id;
   }
 
+  const completedLessonsCount = course.chapters.reduce((acc, ch) => {
+    return acc + ch.lessons.filter((l) => coursePersistence.isLessonCompleted(l.id)).length;
+  }, 0);
+  const isCourseCompleted = totalLessons > 0 && completedLessonsCount >= totalLessons;
+
   // Generate Flashcards list from course takeaways
   const flashcardsList: Flashcard[] = [];
   course.chapters.forEach((ch) => {
@@ -245,15 +250,29 @@ export default function CourseDetailPage() {
               <span>Export Markdown</span>
             </Button>
 
-            <Button
-              onClick={() => setShowCertificate(true)}
-              variant="outline"
-              size="sm"
-              className="rounded-xl gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs font-bold"
-            >
-              <Award className="h-3.5 w-3.5" />
-              <span>Certificate</span>
-            </Button>
+            {isCourseCompleted ? (
+              <Button
+                onClick={() => setShowCertificate(true)}
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5 border-amber-500/40 text-amber-400 hover:bg-amber-500/10 text-xs font-bold shadow-md shadow-amber-500/10"
+              >
+                <Award className="h-3.5 w-3.5" />
+                <span>Get Certificate</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={() =>
+                  alert(`🔒 Certificate Locked: You must complete all ${totalLessons} lessons in this course to unlock your certificate (${completedLessonsCount}/${totalLessons} completed).`)
+                }
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5 border-border/60 text-muted-foreground text-xs font-semibold opacity-70"
+              >
+                <Award className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Certificate (Locked: {completedLessonsCount}/{totalLessons})</span>
+              </Button>
+            )}
 
             <Button
               variant="ghost"

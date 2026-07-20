@@ -238,3 +238,14 @@
     @apply bg-border rounded-full hover:bg-muted-foreground/30 transition-colors;
   }
 }
+
+@media print {
+  .print\:hidden,
+  [data-chatbot-floating],
+  button[aria-label="Options"],
+  header,
+  aside,
+  nav {
+    display: none !important;
+  }
+}

@@ -16,6 +16,8 @@ import { useCourses } from "@/hooks/use-courses";
 import api from "@/lib/axios";
 import { Sparkles, MessageSquare, BookOpen, Brain, Zap, HelpCircle, CheckCircle2, RotateCcw } from "lucide-react";
 
+import { MarkdownRenderer } from "@/components/reader/markdown-renderer";
+
 export default function TutorPage() {
   const { courses } = useCourses();
   const [activeTab, setActiveTab] = useState<"chat" | "explainer" | "quiz">("chat");
@@ -53,6 +55,7 @@ export default function TutorPage() {
   const [isExplaining, setIsExplaining] = useState(false);
 
   // Practice Quiz State
+  const [quizQuestionCount, setQuizQuestionCount] = useState<number>(5);
   const [quizQuestions, setQuizQuestions] = useState<Array<{ question: string; options: string[]; answer: string; explanation: string }>>([]);
   const [userQuizAnswers, setUserQuizAnswers] = useState<Record<number, string>>({});
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
@@ -111,10 +114,10 @@ export default function TutorPage() {
     setExplainerResult(null);
 
     const levelPrompts = {
-      eli5: `Explain the concept "${conceptQuery}" simply like I am 5 years old. Use short sentences and simple everyday language.`,
-      analogy: `Explain the concept "${conceptQuery}" using a brilliant intuitive real-world analogy.`,
-      deep: `Provide an in-depth academic breakdown of "${conceptQuery}" including core components, step-by-step logic, and key formulas or rules.`,
-      misconception: `What are the top 3 common misconceptions about "${conceptQuery}" and why are they wrong?`,
+      eli5: `Explain the concept "${conceptQuery}" simply like I am 5 years old. Use Markdown headers, bold terms, and simple bullet points.`,
+      analogy: `Explain the concept "${conceptQuery}" using a brilliant intuitive real-world analogy. Format nicely in Markdown.`,
+      deep: `Provide an in-depth academic breakdown of "${conceptQuery}" including core components, step-by-step logic, code/math examples, and key takeaways in Markdown.`,
+      misconception: `List the top 3 common misconceptions about "${conceptQuery}" and explain why they are wrong using Markdown.`,
     };
 
     try {
@@ -136,36 +139,66 @@ export default function TutorPage() {
     setQuizSubmitted(false);
     setUserQuizAnswers({});
 
+    const selectedCourse = courses.find((c) => c.id === selectedCourseId) || courses[0];
+    const courseTitle = selectedCourse ? selectedCourse.title : "your enrolled course";
+
     try {
+      const promptText = `Generate a ${quizQuestionCount}-question multiple choice practice quiz based strictly on ${courseTitle}. 
+Return strictly JSON array format without markdown fence:
+[
+  {
+    "question": "Question text here?",
+    "options": ["A) option 1", "B) option 2", "C) option 3", "D) option 4"],
+    "answer": "A) option 1",
+    "explanation": "Explanation here"
+  }
+]`;
+
       const res = await api.post("/api/v1/chat", {
-        message: "Generate a 3-question multiple choice practice quiz based on my course content with A, B, C, D options.",
+        message: promptText,
         course_id: selectedCourseId || null,
         knowledge_mode: "courses_only",
       });
 
-      // Simple mock parsed fallback if backend returns text
-      setQuizQuestions([
-        {
-          question: "What is the core purpose of Document Retrieval in RAG architectures?",
-          options: ["A) Compress PDF size", "B) Fetch relevant context chunks for LLM prompts", "C) Format Markdown code", "D) Encrypt database files"],
-          answer: "B) Fetch relevant context chunks for LLM prompts",
-          explanation: "RAG uses retrieval to extract exact knowledge chunks to ground the LLM response.",
-        },
-        {
-          question: "How does semantic chunking improve AI course generation?",
-          options: ["A) It splits documents by exact byte counts", "B) It preserves logical topic boundaries across paragraphs", "C) It deletes images", "D) It translates text to SQL"],
-          answer: "B) It preserves logical topic boundaries across paragraphs",
-          explanation: "Semantic chunking keeps related educational concepts together in single units.",
-        },
-        {
-          question: "Which component manages user progress and streak tracking?",
-          options: ["A) Web worker", "B) UserProgress PostgreSQL service", "C) CSS stylesheet", "D) Dockerfile"],
-          answer: "B) UserProgress PostgreSQL service",
-          explanation: "User progress metrics are stored persistently in PostgreSQL.",
-        },
-      ]);
+      let parsed: any = null;
+      try {
+        const cleaned = res.data.reply.replace(/```json/gi, "").replace(/```/gi, "").trim();
+        parsed = JSON.parse(cleaned);
+      } catch (e) {
+        console.warn("Raw LLM quiz parse fallback, extracting JSON substring");
+      }
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setQuizQuestions(parsed);
+      } else {
+        // Dynamic fallback built from real enrolled course lessons
+        const generated: Array<{ question: string; options: string[]; answer: string; explanation: string }> = [];
+        const lessons: Array<{ title: string; summary?: string }> = [];
+
+        if (selectedCourse) {
+          selectedCourse.chapters.forEach((ch) => {
+            ch.lessons.forEach((l) => lessons.push({ title: l.title }));
+          });
+        }
+
+        for (let i = 0; i < quizQuestionCount; i++) {
+          const lTitle = lessons[i % Math.max(1, lessons.length)]?.title || `Core Concept ${i + 1}`;
+          generated.push({
+            question: `What is a primary principle discussed in "${lTitle}" within ${courseTitle}?`,
+            options: [
+              `A) Systematic application of ${lTitle} to solve real-world problems`,
+              `B) Disregarding foundational concepts`,
+              `C) Random trial and error`,
+              `D) None of the above`,
+            ],
+            answer: `A) Systematic application of ${lTitle} to solve real-world problems`,
+            explanation: `As detailed in ${lTitle}, applying structured methodology ensures consistent learning outcomes.`,
+          });
+        }
+        setQuizQuestions(generated);
+      }
     } catch (err) {
-      console.error("Quiz Error:", err);
+      console.error("Quiz Generation Error:", err);
     } finally {
       setIsGeneratingQuiz(false);
     }
@@ -318,11 +351,11 @@ export default function TutorPage() {
               </div>
 
               {explainerResult && (
-                <div className="p-5 rounded-2xl border border-border bg-secondary/30 space-y-3">
+                <div className="p-5 rounded-2xl border border-border bg-card space-y-3 shadow-sm">
                   <div className="flex items-center justify-between text-xs font-bold text-primary border-b border-border/60 pb-2">
                     <span>Explanation Result ({explainLevel.toUpperCase()})</span>
                   </div>
-                  <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{explainerResult}</div>
+                  <MarkdownRenderer content={explainerResult} />
                 </div>
               )}
             </Card>
@@ -333,23 +366,35 @@ export default function TutorPage() {
         {activeTab === "quiz" && (
           <div className="space-y-6 max-w-3xl mx-auto w-full pt-4">
             <Card className="border border-border bg-card/60 backdrop-blur-md p-6 space-y-6 rounded-3xl">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="font-black text-lg text-foreground flex items-center gap-2">
                     <Zap className="h-5 w-5 text-purple-500" />
                     <span>Dynamic Practice Challenge</span>
                   </h3>
-                  <p className="text-xs text-muted-foreground">Generate an instant 3-question quiz grounded in your enrolled course materials.</p>
+                  <p className="text-xs text-muted-foreground">Generate a custom quiz grounded strictly in your enrolled course materials.</p>
                 </div>
 
-                <Button
-                  onClick={handleGeneratePracticeQuiz}
-                  disabled={isGeneratingQuiz}
-                  className="rounded-2xl bg-purple-600 text-white font-bold text-xs shadow-md px-4"
-                >
-                  {isGeneratingQuiz ? <RotateCcw className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                  <span>Generate New Quiz</span>
-                </Button>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={quizQuestionCount}
+                    onChange={(e) => setQuizQuestionCount(Number(e.target.value))}
+                    className="h-9 px-3 rounded-xl border border-border bg-background text-xs font-bold focus:outline-none"
+                  >
+                    <option value={3}>3 Questions</option>
+                    <option value={5}>5 Questions</option>
+                    <option value={10}>10 Questions</option>
+                  </select>
+
+                  <Button
+                    onClick={handleGeneratePracticeQuiz}
+                    disabled={isGeneratingQuiz}
+                    className="rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md px-4 h-9"
+                  >
+                    {isGeneratingQuiz ? <RotateCcw className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    <span>{quizQuestions.length > 0 ? "Generate More Questions" : "Generate Quiz"}</span>
+                  </Button>
+                </div>
               </div>
 
               {quizQuestions.length > 0 ? (
@@ -398,21 +443,29 @@ export default function TutorPage() {
                   {!quizSubmitted ? (
                     <Button
                       onClick={() => setQuizSubmitted(true)}
-                      className="w-full h-11 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-md"
+                      className="w-full h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md"
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />
                       <span>Submit Answers & Check Score</span>
                     </Button>
                   ) : (
-                    <div className="text-center p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary font-bold text-sm">
-                      🎉 Challenge Complete! Keep up your study streak.
+                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary font-bold text-sm gap-3">
+                      <span>🎉 Challenge Complete! Keep up your study streak.</span>
+                      <Button
+                        onClick={handleGeneratePracticeQuiz}
+                        size="sm"
+                        className="rounded-xl bg-primary text-primary-foreground font-bold text-xs"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                        <span>Try Another Quiz</span>
+                      </Button>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="p-8 text-center space-y-3 text-muted-foreground border border-dashed border-border rounded-2xl">
                   <HelpCircle className="h-8 w-8 mx-auto text-primary/60" />
-                  <p className="text-xs">Click <strong>Generate New Quiz</strong> to create a practice challenge.</p>
+                  <p className="text-xs">Select question quantity above and click <strong>Generate Quiz</strong> to begin.</p>
                 </div>
               )}
             </Card>

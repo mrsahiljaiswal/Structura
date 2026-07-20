@@ -167,7 +167,7 @@ export function FloatingChatbot() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] pointer-events-auto flex flex-col items-end">
+    <div className="fixed bottom-6 right-6 z-[9999] pointer-events-auto flex flex-col items-end print:hidden" data-chatbot-floating>
       {/* Floating Chat Modal */}
       {isOpen && (
         <div className="mb-4 w-[90vw] sm:w-[420px] h-[580px] max-h-[80vh] flex flex-col rounded-2xl bg-popover text-popover-foreground border border-border shadow-2xl overflow-hidden transition-all duration-300 animate-in fade-in slide-in-from-bottom-5">
