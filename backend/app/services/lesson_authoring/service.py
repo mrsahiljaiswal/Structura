@@ -92,9 +92,7 @@ class LessonAuthoringService:
         return lessons
 
     @staticmethod
-    def _build_prompt(planned_lesson: PlannedLesson, source_units: list[LearningUnit], prereq_titles: list[str]) -> str:
-        @staticmethod
-        def _build_prompt(
+    def _build_prompt(
             planned_lesson: PlannedLesson,
             source_units: list[LearningUnit],
             prereq_titles: list[str],

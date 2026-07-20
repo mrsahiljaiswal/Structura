@@ -210,10 +210,12 @@ class LLMClient:
         return cleaned
 
     def _parse_json(self, raw: Optional[str], system: str, user: str, retries: int) -> Any:
+        system = system or ""
+        user = user or ""
         if not raw:
             if retries > 0:
                 hinted_user = (
-                    user
+                    (user or "")
                     + "\n\nCRITICAL: You MUST respond strictly with a valid, single JSON object. Do not include markdown headers, bullet points, codeblock wrappers, or commentary."
                 )
                 raw = self._call(system, hinted_user, force_json_hint=True)
