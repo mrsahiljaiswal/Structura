@@ -223,6 +223,31 @@ export function CommandPalette({
               }
             });
           }
+
+          // Deep Semantic Content Search: Match search query inside full lesson body text
+          if (search.trim().length >= 2 && lesson.content) {
+            const cleanContent = lesson.content;
+            const queryLower = search.trim().toLowerCase();
+            const matchIndex = cleanContent.toLowerCase().indexOf(queryLower);
+
+            if (matchIndex !== -1) {
+              const snippetStart = Math.max(0, matchIndex - 30);
+              const snippetEnd = Math.min(cleanContent.length, matchIndex + search.trim().length + 50);
+              const snippet = (snippetStart > 0 ? "..." : "") + cleanContent.substring(snippetStart, snippetEnd).trim() + (snippetEnd < cleanContent.length ? "..." : "");
+
+              courseSearchItems.push({
+                id: `content-${lesson.id}-${matchIndex}`,
+                title: snippet,
+                subtitle: `Text match in ${lesson.title} (${course.title})`,
+                category: "Deep Content Search",
+                icon: <Search className="h-4 w-4 text-amber-400" />,
+                action: () => {
+                  router.push(`/dashboard/lesson/${lesson.id}?highlight=${encodeURIComponent(search.trim())}`);
+                  onClose();
+                },
+              });
+            }
+          }
         });
       });
     });

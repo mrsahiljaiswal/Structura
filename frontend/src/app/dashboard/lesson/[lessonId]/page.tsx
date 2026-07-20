@@ -47,21 +47,31 @@ export default function LessonPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const lessonId = params?.lessonId as string;
-  const rawHighlight = searchParams?.get("highlight") || null;
+  const rawHighlight = searchParams?.get("highlight") || searchParams?.get("search") || null;
 
   const [saving, setSaving] = useState(false);
   const [readTimeSec, setReadTimeSec] = useState(0);
   const [activeHighlight, setActiveHighlight] = useState<string | null>(rawHighlight);
   const [spokenSentence, setSpokenSentence] = useState<string | null>(null);
 
-  // Auto-clear highlight after 4 seconds
+  // Auto-highlight and smooth scroll to matching text element
   useEffect(() => {
     if (rawHighlight) {
       setActiveHighlight(rawHighlight);
-      const timer = setTimeout(() => {
+      const scrollTimer = setTimeout(() => {
+        const markElement = document.querySelector("mark");
+        if (markElement) {
+          markElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 300);
+
+      const clearTimer = setTimeout(() => {
         setActiveHighlight(null);
-      }, 4000);
-      return () => clearTimeout(timer);
+      }, 6000);
+      return () => {
+        clearTimeout(scrollTimer);
+        clearTimeout(clearTimer);
+      };
     }
   }, [rawHighlight]);
 
