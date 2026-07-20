@@ -1,8 +1,20 @@
-import { SignUp } from "@clerk/nextjs";
-import Link from "next/link";
-import { Sparkles, BookOpen, Brain, Zap, ShieldCheck, Star } from "lucide-react";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { SignUp, useUser } from "@clerk/nextjs";
+import { Sparkles, Brain, Zap, ShieldCheck, Star } from "lucide-react";
 
 export default function SignUpPage() {
+  const { isLoaded, isSignedIn } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push("/dashboard");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   return (
     <main className="min-h-screen w-full flex bg-background text-foreground overflow-hidden">
       {/* Left Column: Visual Brand Showcase & Features (Desktop) */}
@@ -107,6 +119,8 @@ export default function SignUpPage() {
           {/* Form Card Container */}
           <div className="rounded-3xl border border-border bg-card p-6 shadow-2xl backdrop-blur-xl">
             <SignUp
+              fallbackRedirectUrl="/dashboard"
+              forceRedirectUrl="/dashboard"
               appearance={{
                 elements: {
                   rootBox: "w-full",

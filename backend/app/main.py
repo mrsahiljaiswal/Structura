@@ -59,24 +59,13 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    cors_origins = [str(origin).rstrip("/") for origin in settings.BACKEND_CORS_ORIGINS]
-    if "*" in cors_origins or not cors_origins:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:.*|https://.*\.onrender\.com",
-            allow_origins=["*"],
-            allow_credentials=False,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-    else:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=cors_origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:.*|https://.*\.onrender\.com",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
