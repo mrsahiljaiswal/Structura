@@ -73,7 +73,7 @@ class CoursePersistenceService {
           streak_last_date: res.data.streak_last_date || null,
         };
         this.isLoaded = true;
-        await this.updateStreak();
+        await this.checkStreakExpiration();
         window.dispatchEvent(new Event("storage"));
       } catch (err) {
         console.error("Failed to load user progress from server", err);
@@ -208,10 +208,30 @@ class CoursePersistenceService {
     };
   }
 
+  // Check if user missed a day without prematurely stamping today's date on load
+  async checkStreakExpiration() {
+    if (!this.progress.streak_last_date) return;
+    const today = new Date().toDateString();
+    if (this.progress.streak_last_date === today) return;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+
+    // If last study date was older than yesterday, reset streak count to 0
+    if (this.progress.streak_last_date !== yesterdayStr) {
+      this.progress.streak_count = 0;
+      await this.saveToServer();
+      window.dispatchEvent(new Event("storage"));
+    }
+  }
+
+  // Record active study activity for today to increment/maintain streak
   async updateStreak() {
     const today = new Date().toDateString();
     const currentStreak = this.getStreak();
 
+    // Already recorded study activity for today
     if (currentStreak.lastDate === today) {
       await this.saveToServer();
       window.dispatchEvent(new Event("storage"));

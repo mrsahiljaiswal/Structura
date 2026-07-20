@@ -51,7 +51,7 @@ async def get_user_progress(
         if progress.study_time_by_day is None: progress.study_time_by_day = {}
         if progress.quiz_scores is None: progress.quiz_scores = {}
         if progress.lesson_notes is None: progress.lesson_notes = {}
-        if progress.streak_count is None or progress.streak_count == 0: progress.streak_count = 1
+        if progress.streak_count is None: progress.streak_count = 0
         if progress.chat_history is None: progress.chat_history = []
 
     return progress
