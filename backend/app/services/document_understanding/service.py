@@ -7,35 +7,9 @@ from app.services.document_normalization.schema import NormalizedDocument
 from .exceptions import UnderstandingError
 from .schema import DocumentProfile
 
-ALLOWED_TYPES = {
-    "book", "research_paper", "resume", "lecture_notes",
-    "documentation", "novel", "specification", "slides",
-}
-
-SYSTEM_PROMPT = """You are the Document Understanding Engine in a document-intelligence \
-pipeline. You are given the front and back matter text of a document. Your ONLY job is to \
-classify what kind of document this is and extract bibliographic metadata. You do not \
-summarize content or extract concepts - later stages do that.
-
-Respond with ONLY a JSON object matching this exact shape, no prose, no markdown fences:
-{
-  "document_type": one of ["book","research_paper","resume","lecture_notes","documentation","novel","specification","slides"],
-  "language": "ISO 639-1 code, e.g. en",
-  "title": string or null,
-  "author": string or null,
-  "publisher": string or null,
-  "edition": string or null,
-  "isbn": string or null,
-  "has_preface": bool,
-  "has_acknowledgements": bool,
-  "has_copyright_page": bool,
-  "has_table_of_contents": bool,
-  "has_index": bool,
-  "has_bibliography": bool,
-  "has_appendix": bool,
-  "has_references": bool,
-  "confidence": float between 0 and 1
-}"""
+from app.prompts.modules.understanding.system import build_understanding_system_prompt, ALLOWED_TYPES
+from app.prompts.modules.understanding.user import build_understanding_user_prompt
+from app.prompts.registry import get_prompt_version
 
 FRONT_MATTER_CHAR_LIMIT = 1500
 BACK_MATTER_CHAR_LIMIT = 800
@@ -54,6 +28,7 @@ class DocumentUnderstandingService:
 
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm = llm_client or LLMClient(model="gemini-3.1-flash-lite")
+        self._system_prompt = build_understanding_system_prompt()
 
     def understand(self, normalized: NormalizedDocument) -> DocumentProfile:
         if not normalized.pages:
@@ -61,7 +36,7 @@ class DocumentUnderstandingService:
 
         user_prompt = self._build_prompt(normalized)
         try:
-            data = self.llm.complete_json(SYSTEM_PROMPT, user_prompt)
+            data = self.llm.complete_json(self._system_prompt, user_prompt)
         except LLMError as e:
             raise UnderstandingError(f"Document classification failed: {e}") from e
 
@@ -74,10 +49,12 @@ class DocumentUnderstandingService:
         front_text = self._pages_to_text(front_pages)[:FRONT_MATTER_CHAR_LIMIT]
         back_text = self._pages_to_text(back_pages)[:BACK_MATTER_CHAR_LIMIT]
 
-        return (
-            f"Total pages: {normalized.page_count}\n\n"
-            f"--- FRONT MATTER (first {len(front_pages)} pages) ---\n{front_text}\n\n"
-            f"--- BACK MATTER (last {len(back_pages)} pages) ---\n{back_text}"
+        return build_understanding_user_prompt(
+            page_count=normalized.page_count,
+            front_text=front_text,
+            back_text=back_text,
+            front_page_count=len(front_pages),
+            back_page_count=len(back_pages),
         )
 
     @staticmethod

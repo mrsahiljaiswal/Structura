@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from app.common.course_style import COURSE_STYLE_GUIDE
+import logging
+
 from app.common.exceptions import LLMError
 from app.common.llm_client import LLMClient
 from app.services.lesson_authoring.schema import Lesson
@@ -9,65 +10,11 @@ from app.services.semantic_segmentation.schema import LearningUnitSet
 from .exceptions import ReviewError
 from .schema import ReviewedLesson, ReviewIssue
 
-SYSTEM_PROMPT = COURSE_STYLE_GUIDE  + """
-You are the Educational Review Engine in a document-intelligence pipeline. \
-Generated lessons must NEVER go directly into the database - you are the gate. You are given a \
-lesson and the source learning-unit text it was supposed to be grounded in. 
+from app.prompts.modules.review.system import build_review_system_prompt
+from app.prompts.modules.review.user import build_review_user_prompt
+from app.prompts.registry import get_prompt_version
 
-Review the lesson using the following criteria.
-
-1. Accuracy
-- Every factual statement must be supported by the provided source material.
-
-2. Completeness
-- Ensure every important concept belonging to this lesson has been covered.
-
-3. Educational Flow
-- Verify the lesson progresses naturally from introduction to conclusion.
-
-4. Logical Progression
-- Concepts should be introduced before they are referenced.
-
-5. Clarity
-- Explanations should be easy to understand.
-
-6. Readability
-- Language should be appropriate for university students.
-
-7. Redundancy
-- Detect repeated explanations or unnecessary duplication.
-
-8. Consistency
-- Terminology should remain consistent throughout the lesson.
-
-9. Student Engagement
-- The lesson should teach concepts rather than simply summarize text.
-
-10. Prerequisite Awareness
-- Reject lessons that unnecessarily re-teach concepts expected from prerequisite lessons.
-
-Assign a quality score from 0–100.
-
-Approve only lessons that:
-
-- score at least 70
-- contain no major factual errors
-- contain no major redundancy
-- have good educational flow
-- remain faithful to the source material
-Reject lessons that contain major factual errors,
-major redundancy,
-poor educational flow,
-or significant prerequisite repetition.
-
-Respond with ONLY a JSON object, no prose, no markdown fences:
-{
-  "quality_score": integer 0-100,
-  "issues": [{"category": "grammar|flow|hallucination|missing_concept|redundancy|difficulty|consistency",
-              "severity": "low|medium|high", "description": "..."}],
-  "approved": bool
-}
-A lesson should be approved only if quality_score >= 70 AND there are no "high" severity issues."""
+logger = logging.getLogger(__name__)
 
 
 class EducationalReviewService:
@@ -80,6 +27,7 @@ class EducationalReviewService:
 
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm = llm_client or LLMClient()
+        self._system_prompt = build_review_system_prompt()
 
     def review(
         self,
@@ -98,27 +46,29 @@ class EducationalReviewService:
             )
 
         source_text = "\n\n".join(
-            f"""
-    Topic:
-    {u.topic}
-
-    Summary:
-    {u.summary}
-
-    Content:
-    {u.text}
-    """
+            f"Topic:\n{u.topic}\n\nSummary:\n{u.summary}\n\nContent:\n{u.text}"
             for u in source_units
         )
 
-        prompt = self._build_prompt(
-            lesson,
-            source_text,
+        lesson_text = (
+            f"Overview: {lesson.overview}\n\n"
+            f"Theory: {lesson.theory}\n\n"
+            f"Definitions: {lesson.definitions}\n"
+            f"Examples: {lesson.examples}\n"
+            f"Analogies: {lesson.analogies}\n"
+            f"Misconceptions: {lesson.misconceptions}\n"
+            f"Applications: {lesson.applications}\n\n"
+            f"Summary: {lesson.summary}\n"
+            f"Key takeaways: {lesson.key_takeaways}"
         )
+
+        prompt = build_review_user_prompt(lesson_text=lesson_text, source_text=source_text)
+
+        logger.info("Reviewing lesson '%s' (prompt_version=%s)", lesson.lesson_id, get_prompt_version("review"))
 
         try:
             data = self.llm.complete_json(
-                SYSTEM_PROMPT,
+                self._system_prompt,
                 prompt,
             )
 

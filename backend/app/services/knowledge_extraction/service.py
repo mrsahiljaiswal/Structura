@@ -9,26 +9,9 @@ from app.services.document_structure.schema import DocumentStructure, StructureN
 from .exceptions import KnowledgeExtractionError
 from .schema import Concept, KnowledgeEdge, KnowledgeGraph
 
-SYSTEM_PROMPT = """You are the Knowledge Extraction Engine in a document-intelligence pipeline. \
-You are given the text of ONE section of a larger document. Your job is NOT to generate lessons \
-or explanations - it is to identify the underlying concepts taught in this section.
-
-For every distinct concept in the section, extract:
-- name: short canonical concept name
-- keywords: related terms/synonyms
-- definition: a one-to-two sentence definition drawn from the text, or null if not defined here
-- difficulty: "beginner", "intermediate", or "advanced"
-- importance: 0.0-1.0, how central this concept is to the section
-- prerequisites: names of OTHER concepts (in this section or implied background knowledge)
-  that a reader must understand first
-
-Respond with ONLY a JSON object, no prose, no markdown fences:
-{"concepts": [{"name": "...", "keywords": ["..."], "definition": "..." or null,
-  "difficulty": "...", "importance": 0.0, "prerequisites": ["..."]}]}
-
-If the section has no extractable concepts (e.g. pure narrative, front matter), return {"concepts": []}."""
-
-VALID_DIFFICULTIES = {"beginner", "intermediate", "advanced"}
+from app.prompts.modules.knowledge_extraction.system import build_knowledge_extraction_system_prompt, VALID_DIFFICULTIES
+from app.prompts.modules.knowledge_extraction.user import build_knowledge_extraction_user_prompt
+from app.prompts.registry import get_prompt_version
 
 
 def _slug(name: str) -> str:
@@ -47,6 +30,7 @@ class KnowledgeExtractionService:
 
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm = llm_client or LLMClient()
+        self._system_prompt = build_knowledge_extraction_system_prompt()
 
     def extract(self, structure: DocumentStructure) -> KnowledgeGraph:
         units = self._collect_units(structure.tree)
@@ -111,9 +95,9 @@ class KnowledgeExtractionService:
     # -- LLM call ---------------------------------------------------------------
 
     def _extract_for_unit(self, unit_title: str, text: str) -> list[dict]:
-        user_prompt = f"Section: {unit_title}\n\n{text[:2500]}"
+        user_prompt = build_knowledge_extraction_user_prompt(unit_title=unit_title, text=text)
         try:
-            data = self.llm.complete_json(SYSTEM_PROMPT, user_prompt)
+            data = self.llm.complete_json(self._system_prompt, user_prompt)
         except LLMError as e:
             raise KnowledgeExtractionError(f"Concept extraction failed for section '{unit_title}': {e}") from e
 

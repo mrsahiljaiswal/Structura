@@ -8,20 +8,15 @@ from app.common.exceptions import LLMError
 from app.common.llm_client import LLMClient
 from app.services.knowledge_extraction.schema import KnowledgeGraph
 from app.services.semantic_segmentation.schema import LearningUnitSet
-from .prompt_builder import build_system_prompt
-
-
+from app.prompts.modules.planner.system import build_planner_system_prompt
+from app.prompts.registry import get_prompt_version
 from .exceptions import PlanningError
 from .normalizer import normalize_course_plan
 from .parser import CoursePlanParser
 from .schema import CoursePlan
-from .validator import (
-    EducationalPlanningValidator,
-    PlanningValidationError,
-)
+from .validator import EducationalPlanningValidator
 
 logger = logging.getLogger(__name__)
-
 
 
 class EducationalPlanningService:
@@ -41,6 +36,7 @@ class EducationalPlanningService:
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm = llm_client or LLMClient(model="gemini-3.1-flash-lite")
         self.validator = EducationalPlanningValidator()
+        self._system_prompt = build_planner_system_prompt()
 
     def plan(
         self,
@@ -52,7 +48,7 @@ class EducationalPlanningService:
         if not units.units:
             raise PlanningError("Cannot plan a course with zero learning units.")
 
-        logger.info("Starting educational planning for '%s'", course_title)
+        logger.info("Starting educational planning for '%s' (prompt_version=%s)", course_title, get_prompt_version("planner"))
 
         ordered_ids = self._topological_order(graph, units)
         ordered_units = [
@@ -66,7 +62,7 @@ class EducationalPlanningService:
 
         try:
             raw_plan = self.llm.complete_json(
-                build_system_prompt(),
+                self._system_prompt,
                 prompt,
             )
         except LLMError as e:

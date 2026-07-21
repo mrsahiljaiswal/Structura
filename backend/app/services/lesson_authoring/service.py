@@ -1,87 +1,13 @@
-from __future__ import annotations
-
-from app.common.course_style import COURSE_STYLE_GUIDE
 from app.common.exceptions import LLMError
 from app.common.llm_client import LLMClient
 from app.services.educational_planner.schema import CoursePlan, PlannedLesson
 from app.services.semantic_segmentation.schema import LearningUnit, LearningUnitSet
-
 from .exceptions import LessonAuthoringError
 from .schema import Lesson
 
-SYSTEM_PROMPT = COURSE_STYLE_GUIDE+"""
-You are the Lesson Authoring Engine for an AI-powered educational platform.
-
-Your task is to transform the provided source material into a well-structured lesson.
-
-STRICT EDUCATIONAL RULES
-
-You are an experienced university professor creating professional online course material.
-
-Your objective is to teach concepts clearly rather than merely summarize the source material.
-
-Educational Principles
-
-1. Use ONLY the provided source material.
-2. Never invent facts, examples, analogies, definitions, or conclusions.
-3. Preserve every concept required to satisfy the lesson objectives.
-4. Assume the learner has already completed all prerequisite lessons.
-5. Do NOT repeat explanations already covered in prerequisite lessons.
-6. Focus ONLY on concepts belonging to this lesson.
-7. If the source contains unrelated information, ignore it.
-8. Teach concepts progressively from simple to complex.
-9. Explain ideas before introducing technical terminology.
-10. Merge duplicate explanations into one coherent explanation.
-11. Organize the lesson using clear Markdown headings (##, ###).
-12. Improve readability without changing meaning.
-13. Keep technical terms exactly as they appear.
-14. Prefer conceptual understanding over memorization.
-15. Every explanation should help the learner understand why the concept matters.
-
-Return ONLY JSON.
-
-Return ONLY valid JSON matching exactly the following schema.
-
-{
-  "overview": "string",
- "theory": "Markdown content using headings (##, ###) with a logical teaching flow from introduction to explanation.",
-
-  "definitions": [
-    "string"
-  ],
-
-  "examples": [
-    "string"
-  ],
-
-  "analogies": [
-    "string"
-  ],
-
-  "misconceptions": [
-    "string"
-  ],
-
-  "applications": [
-    "string"
-  ],
-
-  "summary": "string",
-
-  "key_takeaways": [
-    "string"
-  ]
-}
-
-IMPORTANT OUTPUT RULES
-
-- Return ONLY valid JSON.
-- Do NOT wrap the response in Markdown or code fences.
-- Every array must contain ONLY strings.
-- Never return objects or nested JSON inside arrays.
-- Do not invent additional fields.
-- If a section has no content, return an empty array [] or an empty string "".
-"""
+from app.prompts.modules.authoring.system import build_authoring_system_prompt
+from app.prompts.modules.authoring.user import build_authoring_user_prompt
+from app.prompts.registry import get_prompt_version
 
 
 class LessonAuthoringService:
@@ -98,6 +24,7 @@ class LessonAuthoringService:
 
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm = llm_client or LLMClient()
+        self._system_prompt = build_authoring_system_prompt()
 
     def author(
         self,
@@ -111,9 +38,21 @@ class LessonAuthoringService:
                 f"Lesson '{planned_lesson.title}' references no matching learning units."
             )
 
-        prompt = self._build_prompt(planned_lesson, source_units, prerequisite_titles or [])
+        units_text = "\n\n".join(
+            f"### Learning Unit\n\nTopic:\n{u.topic}\n\nSummary:\n{u.summary}\n\n"
+            f"Keywords:\n{', '.join(u.keywords)}\n\nContent:\n{u.text}"
+            for u in source_units
+        )
+        prompt = build_authoring_user_prompt(
+            lesson_title=planned_lesson.title,
+            learning_objectives=planned_lesson.learning_objectives,
+            difficulty=planned_lesson.difficulty,
+            prerequisite_titles=prerequisite_titles or [],
+            units_text=units_text,
+        )
+
         try:
-            data = self.llm.complete_json(SYSTEM_PROMPT, prompt)
+            data = self.llm.complete_json(self._system_prompt, prompt)
         except LLMError as e:
             raise LessonAuthoringError(f"Failed to author lesson '{planned_lesson.title}': {e}") from e
 
