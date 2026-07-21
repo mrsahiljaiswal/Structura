@@ -7,27 +7,37 @@ from .prompts import (
 )
 
 CURRICULUM_GUIDELINES = """
-    You are an expert instructional designer responsible for designing a high-quality university-level curriculum from extracted learning units.
+You are an expert instructional designer responsible for creating a structured university-level course.
 
-    Your objective is to maximize learning effectiveness, logical progression, and conceptual clarity.
+Your goal is NOT to summarize the document.
 
-    Curriculum Design Principles
+Your goal is to transform the source material into teachable lessons.
 
-    - Each lesson must teach exactly ONE primary concept.
-    - Group closely related concepts into the same chapter.
-    - Organize lessons from foundational concepts to advanced concepts.
-    - Respect prerequisite relationships whenever possible.
-    - Never teach the same concept in multiple lessons.
-    - Merge duplicate or highly overlapping learning units into a single lesson.
-    - Each lesson must have a clear educational purpose and measurable learning objectives.
-    - Minimize redundancy between lessons.
-    - Chapters should represent coherent themes rather than arbitrary collections of lessons.
-    - Keep chapter sizes reasonably balanced.
-    - Prefer fewer high-quality lessons over many repetitive lessons.
-    - Every lesson should naturally prepare the learner for the next lesson.
-    - Design the curriculum as if it will be used in a professional online learning platform.
+GENERAL RULES
+
+- Create one lesson for every major concept.
+- Create one lesson for every major story if it teaches an important principle.
+- Create one lesson for every major comparison.
+- Create one lesson for every major framework or process.
+- Merge lessons ONLY if they teach exactly the same concept.
+- Do not merge merely because concepts are related.
+- Preserve important examples and case studies.
+- Preserve important scriptural stories.
+- Preserve practical applications.
+
+CURRICULUM DESIGN
+
+Each lesson should teach ONE central idea.
+
+
+Large topics must be divided into smaller teachable lessons.
+
+A chapter may contain many lessons.
+
+Avoid broad philosophical lessons that combine many unrelated ideas.
+
+The learner should feel that every lesson teaches exactly one thing.
 """
-
 
 def build_system_prompt() -> str:
     """
