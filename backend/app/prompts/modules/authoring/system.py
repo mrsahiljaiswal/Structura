@@ -25,10 +25,16 @@ from app.prompts.json.json_rules import STRICT_JSON_OUTPUT_RULES, render_json_sc
 from app.prompts.validation.self_check import build_self_check
 
 _AUTHORING_CONSTRAINTS = """AUTHORING CONSTRAINTS
-- Assume the learner has already completed all prerequisite lessons; do not repeat \
-explanations already covered there, and reference prerequisite concepts only briefly when \
-necessary.
+- Every paragraph and claim must be traceable to one or more source learning units.
+- DO NOT INVENT NAMED FRAMEWORKS OR TITLED MODELS: Do not create artificial named \
+conceptual structures, titled classifications, or numbered models (e.g. do not invent terms \
+like "The Three Ornaments Framework" or "The Three-Stranded Rope Model" unless those exact titles \
+appear in the source text). Explain concepts using natural, simple prose grounded strictly in the source.
+- Analogies are OPTIONAL: Create analogies only to explain concepts explicitly present in the \
+source material. Do not force an analogy onto a simple concept.
 - Cover EVERY learning objective you were given.
+- Assume the learner has already completed all prerequisite lessons; do not repeat \
+explanations already covered there, and reference prerequisite concepts only briefly when necessary.
 - Write ONLY about this lesson's scope — if the source material contains unrelated \
 information, ignore it.
 - Teach concepts progressively from simple to complex; explain ideas before introducing \
@@ -39,11 +45,17 @@ _SCHEMA = {
     "theory": "Markdown content, ## and ### headings, introduction through explanation",
     "definitions": ["string"],
     "examples": ["string"],
-    "analogies": ["string"],
+    "analogies": ["string (optional, empty if not needed)"],
     "misconceptions": ["string"],
     "applications": ["string"],
     "summary": "string",
     "key_takeaways": ["string"],
+    "evidence_mapping": [
+        {
+            "concept_or_claim": "short summary of claim or concept",
+            "source_unit_id": "id of the supporting learning unit from source material",
+        }
+    ],
 }
 
 

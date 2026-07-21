@@ -19,3 +19,4 @@ class Lesson(JSONArtifact):
     summary: str = ""
     key_takeaways: list[str] = field(default_factory=list)
     learning_unit_ids: list[str] = field(default_factory=list)
+    evidence_mapping: list[dict[str, str]] = field(default_factory=list)

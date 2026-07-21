@@ -33,6 +33,8 @@ _SCHEMA = {
             "category": "grammar|flow|hallucination|missing_concept|redundancy|difficulty|consistency",
             "severity": "low|medium|high",
             "description": "string",
+            "unsupported_claim": "exact sentence or claim that failed grounding, or null",
+            "suggested_correction": "how to rephrase or simplify to make it 100% grounded, or null",
         }
     ],
     "approved": "bool",

@@ -11,6 +11,8 @@ class ReviewIssue:
     category: str  # grammar | flow | hallucination | missing_concept | redundancy | difficulty | consistency
     severity: str  # low | medium | high
     description: str
+    unsupported_claim: str | None = None
+    suggested_correction: str | None = None
 
 
 @dataclass
@@ -22,7 +24,16 @@ class ReviewedLesson(JSONArtifact):
 
     @classmethod
     def from_dict(cls, data: dict) -> "ReviewedLesson":
-        lesson = Lesson(**data["lesson"])
-        issues = [ReviewIssue(**i) for i in data.get("issues", [])]
+        lesson = Lesson(**data["lesson"]) if isinstance(data.get("lesson"), dict) else data["lesson"]
+        issues = [
+            ReviewIssue(
+                category=i.get("category", "flow"),
+                severity=i.get("severity", "low"),
+                description=i.get("description", ""),
+                unsupported_claim=i.get("unsupported_claim"),
+                suggested_correction=i.get("suggested_correction"),
+            )
+            for i in data.get("issues", [])
+        ]
         return cls(lesson=lesson, quality_score=data["quality_score"], issues=issues,
                     approved=data.get("approved", False))

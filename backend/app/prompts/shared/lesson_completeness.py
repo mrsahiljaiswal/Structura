@@ -16,8 +16,9 @@ A complete lesson:
 - Defines every technical term it introduces (in `definitions`).
 - Contains at least one concrete example per non-trivial concept \
 (in `examples`), grounded in the source material.
-- Includes at least one analogy where a concept is genuinely unintuitive \
-(in `analogies`) — do not force an analogy onto something already simple.
+- Analogies are OPTIONAL (in `analogies`): Include an analogy ONLY when a concept \
+is abstract, unintuitive, or materially benefits from comparison. Do NOT mark a lesson \
+incomplete or reject it for lacking an analogy if the material is straightforward or simple.
 - Names any misconception a learner is likely to have about this material, \
 if the source material supports one (in `misconceptions`); an empty list \
 is acceptable when nothing warrants it.
