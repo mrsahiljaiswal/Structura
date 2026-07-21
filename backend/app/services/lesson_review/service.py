@@ -8,16 +8,56 @@ from app.services.semantic_segmentation.schema import LearningUnitSet
 from .exceptions import ReviewError
 from .schema import ReviewedLesson, ReviewIssue
 
-SYSTEM_PROMPT = """You are the Educational Review Engine in a document-intelligence pipeline. \
+SYSTEM_PROMPT = """
+You are the Educational Review Engine in a document-intelligence pipeline. \
 Generated lessons must NEVER go directly into the database - you are the gate. You are given a \
-lesson and the source learning-unit text it was supposed to be grounded in. Review it for:
-- grammar and clarity
-- educational flow (does it build logically from overview to takeaways?)
-- hallucinations (claims not supported by the source text)
-- missing concepts (source material the lesson should have covered but didn't)
-- redundancy (repeated points across sections)
-- difficulty consistency (does the content match the stated difficulty level?)
-- overall consistency (does terminology stay consistent throughout?)
+lesson and the source learning-unit text it was supposed to be grounded in. 
+
+Review the lesson using the following criteria.
+
+1. Accuracy
+- Every factual statement must be supported by the provided source material.
+
+2. Completeness
+- Ensure every important concept belonging to this lesson has been covered.
+
+3. Educational Flow
+- Verify the lesson progresses naturally from introduction to conclusion.
+
+4. Logical Progression
+- Concepts should be introduced before they are referenced.
+
+5. Clarity
+- Explanations should be easy to understand.
+
+6. Readability
+- Language should be appropriate for university students.
+
+7. Redundancy
+- Detect repeated explanations or unnecessary duplication.
+
+8. Consistency
+- Terminology should remain consistent throughout the lesson.
+
+9. Student Engagement
+- The lesson should teach concepts rather than simply summarize text.
+
+10. Prerequisite Awareness
+- Reject lessons that unnecessarily re-teach concepts expected from prerequisite lessons.
+
+Assign a quality score from 0–100.
+
+Approve only lessons that:
+
+- score at least 70
+- contain no major factual errors
+- contain no major redundancy
+- have good educational flow
+- remain faithful to the source material
+Reject lessons that contain major factual errors,
+major redundancy,
+poor educational flow,
+or significant prerequisite repetition.
 
 Respond with ONLY a JSON object, no prose, no markdown fences:
 {
@@ -40,22 +80,56 @@ class EducationalReviewService:
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm = llm_client or LLMClient()
 
-    def review(self, lesson: Lesson, units: LearningUnitSet) -> ReviewedLesson:
-        # Deterministic quality review (0 extra LLM calls required)
-        issues = []
-        score = 88
+    def review(
+        self,
+        lesson: Lesson,
+        units: LearningUnitSet,
+    ) -> ReviewedLesson:
+        source_units = [
+            u
+            for u in units.units
+            if u.id in lesson.learning_unit_ids
+        ]
 
-        if not lesson.overview or len(lesson.overview.strip()) < 10:
-            score -= 10
-            issues.append(ReviewIssue(category="flow", severity="low", description="Brief overview section"))
+        if not source_units:
+            raise ReviewError(
+                f"No source learning units found for lesson '{lesson.title}'."
+            )
 
-        if not lesson.theory or len(lesson.theory.strip()) < 20:
-            score -= 10
-            issues.append(ReviewIssue(category="flow", severity="medium", description="Brief theory section"))
+        source_text = "\n\n".join(
+            f"""
+    Topic:
+    {u.topic}
 
-        score = max(75, score)
-        return ReviewedLesson(lesson=lesson, quality_score=score, issues=issues, approved=True)
+    Summary:
+    {u.summary}
 
+    Content:
+    {u.text}
+    """
+            for u in source_units
+        )
+
+        prompt = self._build_prompt(
+            lesson,
+            source_text,
+        )
+
+        try:
+            data = self.llm.complete_json(
+                SYSTEM_PROMPT,
+                prompt,
+            )
+
+        except LLMError as e:
+            raise ReviewError(
+                f"Failed to review lesson '{lesson.title}': {e}"
+            ) from e
+
+        return self._to_reviewed_lesson(
+            lesson,
+            data,
+        )
     @staticmethod
     def _build_prompt(lesson: Lesson, source_text: str) -> str:
         lesson_text = (
@@ -85,6 +159,10 @@ class EducationalReviewService:
         ]
         has_high_severity = any(i.severity == "high" for i in issues)
         # trust the model's `approved` flag but enforce the stated policy as a floor
-        approved = bool(data.get("approved", False)) and int(score) >= 70 and not has_high_severity
+        approved = (
+            bool(data.get("approved", False))
+            and int(score) >= 70
+            and not has_high_severity
+        )
 
         return ReviewedLesson(lesson=lesson, quality_score=int(score), issues=issues, approved=approved)
