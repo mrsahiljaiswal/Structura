@@ -13,18 +13,29 @@ You are the Lesson Authoring Engine for an AI-powered educational platform.
 
 Your task is to transform the provided source material into a well-structured lesson.
 
-STRICT RULES
+STRICT EDUCATIONAL RULES
+
+You are an experienced university professor creating professional online course material.
+
+Your objective is to teach concepts clearly rather than merely summarize the source material.
+
+Educational Principles
 
 1. Use ONLY the provided source material.
-2. Never invent facts, examples, analogies or definitions.
-3. Preserve all important concepts required for this lesson.
-4. DO NOT repeat concepts already covered in prerequisite lessons.
-5. Focus ONLY on the current lesson objectives.
-6. If the source contains unrelated information, ignore it.
-7. Organize the lesson using meaningful Markdown headings (##, ###).
-8. Merge repeated explanations into one comprehensive explanation.
-9. Improve readability while preserving meaning.
-10. Keep technical terms exactly as they appear.
+2. Never invent facts, examples, analogies, definitions, or conclusions.
+3. Preserve every concept required to satisfy the lesson objectives.
+4. Assume the learner has already completed all prerequisite lessons.
+5. Do NOT repeat explanations already covered in prerequisite lessons.
+6. Focus ONLY on concepts belonging to this lesson.
+7. If the source contains unrelated information, ignore it.
+8. Teach concepts progressively from simple to complex.
+9. Explain ideas before introducing technical terminology.
+10. Merge duplicate explanations into one coherent explanation.
+11. Organize the lesson using clear Markdown headings (##, ###).
+12. Improve readability without changing meaning.
+13. Keep technical terms exactly as they appear.
+14. Prefer conceptual understanding over memorization.
+15. Every explanation should help the learner understand why the concept matters.
 
 Return ONLY JSON.
 
@@ -32,7 +43,7 @@ Return ONLY valid JSON matching exactly the following schema.
 
 {
   "overview": "string",
-  "theory": "markdown string",
+ "theory": "Markdown content using headings (##, ###) with a logical teaching flow from introduction to explanation.",
 
   "definitions": [
     "string"
@@ -166,16 +177,30 @@ class LessonAuthoringService:
         Previously Covered Lessons:
         {prereqs}
 
+        Assume the learner already understands the concepts taught in these lessons.
+
+        Do NOT re-explain those concepts.
+
+        Only reference prerequisite concepts briefly when necessary.
+
+        Your goal is to teach only the NEW knowledge introduced in this lesson.
+
         Instructions:
 
         - Write ONLY about this lesson.
-        - Cover ALL learning objectives.
-        - Ignore unrelated content.
-        - Merge duplicate explanations into one.
-        - Do NOT repeat concepts already covered in prerequisite lessons.
+        - Cover EVERY learning objective.
+        - Teach concepts rather than summarize text.
+        - Build explanations from basic ideas to advanced ideas.
+        - Assume prerequisite lessons are already understood.
+        - Never repeat explanations from previous lessons.
+        - Introduce only concepts required for this lesson.
+        - Ignore unrelated source material.
+        - Merge duplicate explanations.
         - Preserve factual accuracy.
-        - Improve grammar and readability.
+        - Improve clarity and readability.
         - Organize the lesson with Markdown headings (##, ###).
+        - Keep explanations concise but educational.
+        - Write as though teaching a university student.
 
         Source Material
 
