@@ -47,15 +47,25 @@ class KnowledgeExtractionService:
                 title = unit.title or unit.node_id
                 sampled_parts.append(f"Section [{title}]: {txt[:400]}")
 
-        combined_text = "\n\n".join(sampled_parts)[:2500]
-        if not combined_text:
-            combined_text = "General Document Concepts"
+        # Extract concepts across all document sections/chapters
+        for unit in units:
+            txt = self._unit_text(unit).strip()
+            if not txt:
+                continue
+            title = unit.title or unit.node_id
+            raw_concepts = self._extract_for_unit(title, txt[:3000])
+            for raw in raw_concepts:
+                self._merge_concept(concepts_by_slug, raw, unit)
 
-        raw_concepts = self._extract_for_unit("Core Document Overview", combined_text)
-        primary_unit = units[0] if units else StructureNode(node_id="root", level="doc")
-
-        for raw in raw_concepts:
-            self._merge_concept(concepts_by_slug, raw, primary_unit)
+        # Fallback for documents with very few or unsectioned text blocks
+        if len(concepts_by_slug) < 3:
+            all_text_parts = [f"Section [{u.title or u.node_id}]: {self._unit_text(u).strip()[:500]}" for u in units]
+            combined_text = "\n\n".join(all_text_parts)[:4000]
+            if combined_text:
+                fallback_concepts = self._extract_for_unit("Full Document Concepts Overview", combined_text)
+                primary_unit = units[0] if units else StructureNode(node_id="root", level="doc")
+                for raw in fallback_concepts:
+                    self._merge_concept(concepts_by_slug, raw, primary_unit)
 
         edges = self._build_edges(concepts_by_slug)
         return KnowledgeGraph(concepts=list(concepts_by_slug.values()), edges=edges)

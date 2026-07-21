@@ -140,25 +140,58 @@ class StructuraPipeline:
         if self.save_intermediates:
             KnowledgeExtractionExporter().export(knowledge, str(self.output_dir))
 
+        print("=" * 80)
+        print("LEARNING UNITS / KNOWLEDGE EXTRACTION OUTPUT")
+        print("=" * 80)
+        print(f"Total Concepts Extracted: {len(knowledge.concepts)}")
+        for concept in knowledge.concepts:
+            print("-", concept.name)
+
         # Module 6: Semantic Segmentation
-        print("[Module 6] Semantic Segmentation...")
+        print("\n[Module 6] Semantic Segmentation...")
         learning_units = self.segmentation.segment(structure, knowledge)
         if not self.skip_validation:
             SemanticSegmentationValidator().validate(learning_units)
         if self.save_intermediates:
             SemanticSegmentationExporter().export(learning_units, str(self.output_dir))
 
+        print("=" * 80)
+        print("SEGMENTS / SEMANTIC SEGMENTATION OUTPUT")
+        print("=" * 80)
+        print(f"Total Learning Unit Segments: {len(learning_units.units)}")
+        for unit in learning_units.units:
+            print("-", unit.topic)
+
         # Module 7: Educational Planning
-        print("[Module 7] Educational Planning...")
+        print("\n[Module 7] Educational Planning...")
+        print("=" * 80)
+        print("PLANNER INPUT")
+        print("=" * 80)
+        print("Units:", len(learning_units.units))
+        for u in learning_units.units:
+            print("-", u.topic)
+
         plan = self.planner.plan(knowledge, learning_units, course_title)
         if not self.skip_validation:
             EducationalPlanningValidator().validate(plan)
         if self.save_intermediates:
             EducationalPlanningExporter().export(plan, str(self.output_dir))
 
+        print("=" * 80)
+        print("CURRICULUM / PLANNER OUTPUT")
+        print("=" * 80)
+        print(f"Total Modules: {len(plan.modules)}")
+        for module in plan.modules:
+            print(f"Module: {module.title}")
+            for chapter in module.chapters:
+                print(f"  Chapter: {chapter.title}")
+                for lesson in chapter.lessons:
+                    print(f"     Lesson: {lesson.title}")
+
         # Module 8: Lesson Authoring
-        print("[Module 8] Lesson Authoring...")
+        print("\n[Module 8] Lesson Authoring...")
         authored_lessons = self.authoring.author_all(plan, learning_units)
+        print(f"Lessons Authored: {len(authored_lessons)}")
         exporter = LessonAuthoringExporter()
         for lesson in authored_lessons:
             if not self.skip_validation:
