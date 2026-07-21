@@ -84,9 +84,6 @@ class LLMClient:
             model_name,
             "gemini-3.1-flash-lite",
             "gemini-2.5-flash-lite",
-            "gemini-2.5-flash",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-8b",
         ]
         seen = set()
         models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
