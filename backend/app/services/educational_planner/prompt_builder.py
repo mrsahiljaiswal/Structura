@@ -1,4 +1,4 @@
-from backend.app.common.course_style import COURSE_STYLE_GUIDE
+from app.common.course_style import COURSE_STYLE_GUIDE
 from .prompts import (
     SYSTEM_PROMPT,
     SCHEMA_PROMPT,
