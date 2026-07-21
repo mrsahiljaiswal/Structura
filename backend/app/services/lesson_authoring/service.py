@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.common.course_style import COURSE_STYLE_GUIDE
 from app.common.exceptions import LLMError
 from app.common.llm_client import LLMClient
 from app.services.educational_planner.schema import CoursePlan, PlannedLesson
@@ -8,7 +9,7 @@ from app.services.semantic_segmentation.schema import LearningUnit, LearningUnit
 from .exceptions import LessonAuthoringError
 from .schema import Lesson
 
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT = COURSE_STYLE_GUIDE+"""
 You are the Lesson Authoring Engine for an AI-powered educational platform.
 
 Your task is to transform the provided source material into a well-structured lesson.

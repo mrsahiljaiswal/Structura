@@ -1,4 +1,7 @@
+from app.common.course_style import COURSE_STYLE_GUIDE
+
 from .prompts import (
+    COURSE_STYLE_GUIDE,
     SYSTEM_PROMPT,
     SCHEMA_PROMPT,
     VALIDATION_PROMPT,

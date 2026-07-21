@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.common.course_style import COURSE_STYLE_GUIDE
 from app.common.exceptions import LLMError
 from app.common.llm_client import LLMClient
 from app.services.lesson_authoring.schema import Lesson
@@ -8,7 +9,7 @@ from app.services.semantic_segmentation.schema import LearningUnitSet
 from .exceptions import ReviewError
 from .schema import ReviewedLesson, ReviewIssue
 
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT = COURSE_STYLE_GUIDE  + """
 You are the Educational Review Engine in a document-intelligence pipeline. \
 Generated lessons must NEVER go directly into the database - you are the gate. You are given a \
 lesson and the source learning-unit text it was supposed to be grounded in. 
