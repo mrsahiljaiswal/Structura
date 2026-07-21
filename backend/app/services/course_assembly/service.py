@@ -86,21 +86,42 @@ class CourseAssemblyService:
 
     @staticmethod
     def _estimate_word_count(lesson) -> int:
-        """Rough estimate: count chars in main content fields and divide by avg word length."""
-        content_parts = [
-            lesson.overview or "",
-            lesson.theory or "",
-            " ".join(lesson.definitions),
-            " ".join(lesson.examples),
-            " ".join(lesson.analogies),
-            " ".join(lesson.misconceptions),
-            " ".join(lesson.applications),
-            lesson.summary or "",
-            " ".join(lesson.key_takeaways),
-        ]
-        total_chars = sum(len(p) for p in content_parts)
-        return max(1, total_chars // CHARS_PER_WORD)
+        """
+        Estimate word count by flattening all lesson content into plain text.
+        Supports strings, lists, dictionaries, and nested structures.
+        """
 
+        def flatten(value) -> str:
+            if value is None:
+                return ""
+
+            if isinstance(value, str):
+                return value
+
+            if isinstance(value, dict):
+                return " ".join(flatten(v) for v in value.values())
+
+            if isinstance(value, (list, tuple, set)):
+                return " ".join(flatten(v) for v in value)
+
+            return str(value)
+
+        content = " ".join([
+            flatten(lesson.overview),
+            flatten(lesson.theory),
+            flatten(lesson.definitions),
+            flatten(lesson.examples),
+            flatten(lesson.analogies),
+            flatten(lesson.misconceptions),
+            flatten(lesson.applications),
+            flatten(lesson.summary),
+            flatten(lesson.key_takeaways),
+        ])
+
+        word_count = len(content.split())
+
+        return max(1, word_count)
+    
     @staticmethod
     def _compute_statistics(
         modules: list[AssembledModule],

@@ -28,17 +28,47 @@ STRICT RULES
 
 Return ONLY JSON.
 
+Return ONLY valid JSON matching exactly the following schema.
+
 {
-  "overview": "...",
-  "theory": "...",
-  "definitions": [],
-  "examples": [],
-  "analogies": [],
-  "misconceptions": [],
-  "applications": [],
-  "summary": "...",
-  "key_takeaways": []
+  "overview": "string",
+  "theory": "markdown string",
+
+  "definitions": [
+    "string"
+  ],
+
+  "examples": [
+    "string"
+  ],
+
+  "analogies": [
+    "string"
+  ],
+
+  "misconceptions": [
+    "string"
+  ],
+
+  "applications": [
+    "string"
+  ],
+
+  "summary": "string",
+
+  "key_takeaways": [
+    "string"
+  ]
 }
+
+IMPORTANT OUTPUT RULES
+
+- Return ONLY valid JSON.
+- Do NOT wrap the response in Markdown or code fences.
+- Every array must contain ONLY strings.
+- Never return objects or nested JSON inside arrays.
+- Do not invent additional fields.
+- If a section has no content, return an empty array [] or an empty string "".
 """
 
 
