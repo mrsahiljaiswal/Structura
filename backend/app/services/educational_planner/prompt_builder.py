@@ -1,7 +1,5 @@
-from app.common.course_style import COURSE_STYLE_GUIDE
-
+from backend.app.common.course_style import COURSE_STYLE_GUIDE
 from .prompts import (
-    COURSE_STYLE_GUIDE,
     SYSTEM_PROMPT,
     SCHEMA_PROMPT,
     VALIDATION_PROMPT,
@@ -38,6 +36,7 @@ def build_system_prompt() -> str:
 
     return "\n\n".join(
         [
+            COURSE_STYLE_GUIDE,
             CURRICULUM_GUIDELINES,
             SYSTEM_PROMPT,
             SCHEMA_PROMPT,
