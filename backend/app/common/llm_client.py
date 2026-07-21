@@ -10,7 +10,7 @@ import requests
 
 from .exceptions import LLMError
 
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 DEFAULT_PDF_MODEL = "gemini-3.1-flash-lite"
 DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
 
@@ -83,7 +83,6 @@ class LLMClient:
         models_to_try = [
             model_name,
             "gemini-3.1-flash-lite",
-            "gemini-2.5-flash-lite",
         ]
         seen = set()
         models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
