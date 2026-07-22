@@ -14,7 +14,7 @@ from .exceptions import PlanningError
 from .normalizer import normalize_course_plan
 from .parser import CoursePlanParser
 from .schema import CoursePlan
-from .validator import EducationalPlanningValidator
+from .validator import EducationalPlanningValidator, PlanningValidationError
 
 logger = logging.getLogger(__name__)
 

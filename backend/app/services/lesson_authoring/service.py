@@ -38,25 +38,14 @@ class LessonAuthoringService:
                 f"Lesson '{planned_lesson.title}' references no matching learning units."
             )
 
-        units_text = "\n\n".join(
-            f"### Learning Unit\n\nTopic:\n{u.topic}\n\nSummary:\n{u.summary}\n\n"
-            f"Keywords:\n{', '.join(u.keywords)}\n\nContent:\n{u.text}"
-            for u in source_units
-        )
-        prompt = build_authoring_user_prompt(
-            lesson_title=planned_lesson.title,
-            learning_objectives=planned_lesson.learning_objectives,
-            difficulty=planned_lesson.difficulty,
-            prerequisite_titles=prerequisite_titles or [],
-            units_text=units_text,
-        )
+        prompt = self.build_prompt(planned_lesson, source_units, prerequisite_titles or [])
 
         try:
             data = self.llm.complete_json(self._system_prompt, prompt)
         except LLMError as e:
             raise LessonAuthoringError(f"Failed to author lesson '{planned_lesson.title}': {e}") from e
 
-        return self._to_lesson(planned_lesson, data)
+        return self.to_lesson(planned_lesson, data)
 
     def author_all(self, plan: CoursePlan, units: LearningUnitSet) -> list[Lesson]:
         """Convenience: author every lesson in a course plan, one independent call each."""
@@ -73,82 +62,26 @@ class LessonAuthoringService:
         return lessons
 
     @staticmethod
-    def _build_prompt(
-            planned_lesson: PlannedLesson,
-            source_units: list[LearningUnit],
-            prereq_titles: list[str],
-        ) -> str:
-
-            units_text = "\n\n".join(
-                f"""
-        ### Learning Unit
-
-        Topic:
-        {u.topic}
-
-        Summary:
-        {u.summary}
-
-        Keywords:
-        {", ".join(u.keywords)}
-
-        Content:
-        {u.text}
-        """
-                for u in source_units
-            )
-
-            objectives = "\n".join(
-                f"- {obj}" for obj in planned_lesson.learning_objectives
-            )
-
-            prereqs = ", ".join(prereq_titles) if prereq_titles else "None"
-
-            return f"""
-        Lesson Title:
-        {planned_lesson.title}
-
-        Learning Objectives:
-        {objectives}
-
-        Difficulty:
-        {planned_lesson.difficulty}
-
-        Previously Covered Lessons:
-        {prereqs}
-
-        Assume the learner already understands the concepts taught in these lessons.
-
-        Do NOT re-explain those concepts.
-
-        Only reference prerequisite concepts briefly when necessary.
-
-        Your goal is to teach only the NEW knowledge introduced in this lesson.
-
-        Instructions:
-
-        - Write ONLY about this lesson.
-        - Cover EVERY learning objective.
-        - Teach concepts rather than summarize text.
-        - Build explanations from basic ideas to advanced ideas.
-        - Assume prerequisite lessons are already understood.
-        - Never repeat explanations from previous lessons.
-        - Introduce only concepts required for this lesson.
-        - Ignore unrelated source material.
-        - Merge duplicate explanations.
-        - Preserve factual accuracy.
-        - Improve clarity and readability.
-        - Organize the lesson with Markdown headings (##, ###).
-        - Keep explanations concise but educational.
-        - Write as though teaching a university student.
-
-        Source Material
-
-        {units_text}
-        """
+    def build_prompt(
+        planned_lesson: PlannedLesson,
+        source_units: list[LearningUnit],
+        prereq_titles: list[str],
+    ) -> str:
+        units_text = "\n\n".join(
+            f"### Learning Unit\n\nTopic:\n{u.topic}\n\nSummary:\n{u.summary}\n\n"
+            f"Keywords:\n{', '.join(u.keywords)}\n\nContent:\n{u.text}"
+            for u in source_units
+        )
+        return build_authoring_user_prompt(
+            lesson_title=planned_lesson.title,
+            learning_objectives=planned_lesson.learning_objectives,
+            difficulty=planned_lesson.difficulty,
+            prerequisite_titles=prereq_titles,
+            units_text=units_text,
+        )
 
     @staticmethod
-    def _to_lesson(planned_lesson: PlannedLesson, data: dict) -> Lesson:
+    def to_lesson(planned_lesson: PlannedLesson, data: dict) -> Lesson:
         required = ["overview", "theory"]
         missing = [k for k in required if not data.get(k)]
         if missing:
@@ -168,4 +101,5 @@ class LessonAuthoringService:
             summary=data.get("summary", ""),
             key_takeaways=data.get("key_takeaways", []),
             learning_unit_ids=planned_lesson.learning_unit_ids,
+            evidence_mapping=data.get("evidence_mapping", []),
         )

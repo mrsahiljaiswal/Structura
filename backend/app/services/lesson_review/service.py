@@ -94,26 +94,63 @@ class EducationalReviewService:
             f"Summary: {lesson.summary}\n"
             f"Key takeaways: {lesson.key_takeaways}"
         )
-        return f"--- LESSON ---\n{lesson_text}\n\n--- SOURCE MATERIAL ---\n{source_text[:8000]}"
+        return build_review_user_prompt(lesson_text=lesson_text, source_text=source_text)
 
     @staticmethod
     def _to_reviewed_lesson(lesson: Lesson, data: dict) -> ReviewedLesson:
-        score = data.get("quality_score")
-        if score is None or not (0 <= int(score) <= 100):
-            raise ReviewError(f"Reviewer returned an invalid quality_score: {score!r}")
+        from app.prompts.critique.critique_framework import recompute_weighted_score, DIMENSIONS
+        from app.prompts.modules.review.system import MIN_APPROVAL_SCORE, MIN_GROUNDING_SCORE
+
+        dims = data.get("dimension_scores", {})
+        missing = set(DIMENSIONS) - set(dims)
+        if missing:
+            raise ReviewError(f"Reviewer response missing dimension scores: {sorted(missing)}")
+
+        reported = data.get("quality_score")
+        if reported is not None and not (0 <= int(reported) <= 100):
+            raise ReviewError(f"Reviewer returned an invalid quality_score: {reported!r}")
+
+        for name, dscore in dims.items():
+            if not (0 <= int(dscore) <= 100):
+                raise ReviewError(f"Reviewer returned an invalid score for dimension '{name}': {dscore!r}")
+
+        # server-side recompute — never trust the model's own arithmetic
+        recomputed = recompute_weighted_score(dims)
+        if reported is None or abs(recomputed - float(reported)) > 5:
+            # divergence beyond a small rounding tolerance -> the model's
+            # top-line score wasn't actually derived from its own dimensions
+            logger.warning(
+                "Review quality_score (%s) diverged from recomputed weighted score (%.1f) "
+                "for lesson '%s' — using the recomputed value.",
+                reported, recomputed, lesson.lesson_id,
+            )
+        score = round(recomputed)
 
         issues = [
-            ReviewIssue(category=i.get("category", "consistency"),
-                        severity=i.get("severity", "low"),
-                        description=i.get("description", ""))
+            ReviewIssue(
+                category=i.get("category", "consistency"),
+                severity=i.get("severity", "low"),
+                dimension=i.get("dimension"),
+                description=i.get("description", ""),
+                unsupported_claim=i.get("unsupported_claim"),
+                suggested_correction=i.get("suggested_correction"),
+            )
             for i in data.get("issues", [])
         ]
         has_high_severity = any(i.severity == "high" for i in issues)
-        # trust the model's `approved` flag but enforce the stated policy as a floor
+        grounding_ok = dims.get("grounding", 0) >= MIN_GROUNDING_SCORE
+
         approved = (
             bool(data.get("approved", False))
-            and int(score) >= 70
+            and score >= MIN_APPROVAL_SCORE
+            and grounding_ok
             and not has_high_severity
         )
 
-        return ReviewedLesson(lesson=lesson, quality_score=int(score), issues=issues, approved=approved)
+        return ReviewedLesson(
+            lesson=lesson,
+            quality_score=score,
+            dimension_scores=dims,
+            issues=issues,
+            approved=approved,
+        )

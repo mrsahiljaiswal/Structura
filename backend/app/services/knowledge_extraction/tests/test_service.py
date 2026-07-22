@@ -73,7 +73,7 @@ def test_validator_rejects_empty_graph():
         KnowledgeExtractionValidator().validate(KnowledgeGraph(concepts=[], edges=[]))
 
 
-def test_validator_rejects_dangling_edge():
+def test_validator_auto_repairs_dangling_edge():
     from app.services.knowledge_extraction.schema import Concept, KnowledgeEdge, KnowledgeGraph
     graph = KnowledgeGraph(
         concepts=[Concept(concept_id="a", name="A", keywords=[], definition=None,
@@ -81,5 +81,6 @@ def test_validator_rejects_dangling_edge():
                            source_node_ids=[], pages=[])],
         edges=[KnowledgeEdge(source="A", relation="requires", target="Nonexistent")],
     )
-    with pytest.raises(KnowledgeExtractionError):
-        KnowledgeExtractionValidator().validate(graph)
+    KnowledgeExtractionValidator().validate(graph)
+    assert any(c.name == "Nonexistent" for c in graph.concepts)
+    assert any(c.definition == "Inferred concept from relationship edges." for c in graph.concepts)

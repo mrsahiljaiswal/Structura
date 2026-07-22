@@ -76,6 +76,5 @@ def test_validator_rejects_unknown_prerequisite():
     bad_plan = json.loads(json.dumps(GOOD_PLAN))
     bad_plan["modules"][0]["chapters"][0]["lessons"][1]["prerequisites"] = ["does-not-exist"]
     client = LLMClient(fake_responder=lambda s, u: json.dumps(bad_plan))
-    plan = EducationalPlanningService(llm_client=client).plan(graph, units, "Database Internals")
     with pytest.raises(PlanningError):
-        EducationalPlanningValidator().validate(plan)
+        EducationalPlanningService(llm_client=client).plan(graph, units, "Database Internals")

@@ -14,7 +14,11 @@ from app.prompts.base.philosophy import EDUCATIONAL_PHILOSOPHY
 from app.prompts.base.roles import ROLE_AUTHORING
 from app.prompts.base.prompt_sections import PromptSection, assemble
 from app.prompts.shared.writing_style import WRITING_STYLE_GUIDE
-from app.prompts.shared.teaching_patterns import TEACHING_PATTERNS_GUIDE
+from app.prompts.shared.teaching_patterns import (
+    TEACHING_PATTERNS_GUIDE,
+    TEXTBOOK_LESSON_STRUCTURE,
+    REFLECTION_QUESTION_GUIDE,
+)
 from app.prompts.shared.cognitive_load import COGNITIVE_LOAD_GUIDE
 from app.prompts.shared.blooms_taxonomy import BLOOMS_GUIDE
 from app.prompts.shared.story_guidelines import STORY_AND_EXAMPLE_GUIDELINES
@@ -25,16 +29,10 @@ from app.prompts.json.json_rules import STRICT_JSON_OUTPUT_RULES, render_json_sc
 from app.prompts.validation.self_check import build_self_check
 
 _AUTHORING_CONSTRAINTS = """AUTHORING CONSTRAINTS
-- Every paragraph and claim must be traceable to one or more source learning units.
-- DO NOT INVENT NAMED FRAMEWORKS OR TITLED MODELS: Do not create artificial named \
-conceptual structures, titled classifications, or numbered models (e.g. do not invent terms \
-like "The Three Ornaments Framework" or "The Three-Stranded Rope Model" unless those exact titles \
-appear in the source text). Explain concepts using natural, simple prose grounded strictly in the source.
-- Analogies are OPTIONAL: Create analogies only to explain concepts explicitly present in the \
-source material. Do not force an analogy onto a simple concept.
-- Cover EVERY learning objective you were given.
 - Assume the learner has already completed all prerequisite lessons; do not repeat \
-explanations already covered there, and reference prerequisite concepts only briefly when necessary.
+explanations already covered there, and reference prerequisite concepts only briefly when \
+necessary.
+- Cover EVERY learning objective you were given.
 - Write ONLY about this lesson's scope — if the source material contains unrelated \
 information, ignore it.
 - Teach concepts progressively from simple to complex; explain ideas before introducing \
@@ -45,17 +43,11 @@ _SCHEMA = {
     "theory": "Markdown content, ## and ### headings, introduction through explanation",
     "definitions": ["string"],
     "examples": ["string"],
-    "analogies": ["string (optional, empty if not needed)"],
+    "analogies": ["string"],
     "misconceptions": ["string"],
     "applications": ["string"],
     "summary": "string",
     "key_takeaways": ["string"],
-    "evidence_mapping": [
-        {
-            "concept_or_claim": "short summary of claim or concept",
-            "source_unit_id": "id of the supporting learning unit from source material",
-        }
-    ],
 }
 
 
@@ -71,7 +63,11 @@ def build_authoring_system_prompt() -> str:
             "CONSTRAINTS",
             f"{_AUTHORING_CONSTRAINTS}\n\n{STORY_AND_EXAMPLE_GUIDELINES}\n\n{LESSON_COMPLETENESS_CHECKLIST}",
         ),
-        PromptSection("PROCESS", f"{COGNITIVE_LOAD_GUIDE}\n\n{BLOOMS_GUIDE}\n\n{TEACHING_PATTERNS_GUIDE}"),
+        PromptSection(
+            "PROCESS",
+            f"{TEXTBOOK_LESSON_STRUCTURE}\n\n{COGNITIVE_LOAD_GUIDE}\n\n{BLOOMS_GUIDE}\n\n"
+            f"{TEACHING_PATTERNS_GUIDE}\n\n{REFLECTION_QUESTION_GUIDE}",
+        ),
         PromptSection("ANTI_HALLUCINATION", ANTI_HALLUCINATION_GENERATION),
         PromptSection(
             "OUTPUT_RULES",

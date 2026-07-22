@@ -110,7 +110,7 @@ class EducationalPlanningValidator:
                             f"Lesson '{lesson.title}' has invalid duration."
                         )
 
-                    if lesson.difficulty not in VALID_DIFFICULTIES:
+                    if lesson.difficulty.title() not in VALID_DIFFICULTIES:
                         raise PlanningValidationError(
                             f"Lesson '{lesson.title}' has invalid difficulty '{lesson.difficulty}'."
                         )

@@ -27,7 +27,13 @@ def _make_units():
 
 
 def test_review_approves_good_lesson():
-    good = {"quality_score": 88, "issues": [], "approved": True}
+    from app.prompts.critique.critique_framework import DIMENSIONS
+    good = {
+        "dimension_scores": {name: 88 for name in DIMENSIONS},
+        "quality_score": 88,
+        "issues": [],
+        "approved": True
+    }
     client = LLMClient(fake_responder=lambda s, u: json.dumps(good))
     reviewed = EducationalReviewService(llm_client=client).review(_make_lesson(), _make_units())
     assert reviewed.approved is True
@@ -36,10 +42,12 @@ def test_review_approves_good_lesson():
 
 
 def test_review_enforces_approval_floor_despite_model_claim():
+    from app.prompts.critique.critique_framework import DIMENSIONS
     # model says approved=True but there's a high severity issue - floor should override it
     conflicting = {
+        "dimension_scores": {name: 90 for name in DIMENSIONS},
         "quality_score": 90,
-        "issues": [{"category": "hallucination", "severity": "high",
+        "issues": [{"category": "hallucination", "severity": "high", "dimension": "grounding",
                      "description": "Claims transactions are always distributed, unsupported."}],
         "approved": True,
     }
@@ -51,15 +59,27 @@ def test_review_enforces_approval_floor_despite_model_claim():
 
 
 def test_review_low_score_not_approved():
-    low = {"quality_score": 40, "issues": [{"category": "flow", "severity": "medium",
-                                             "description": "Jumps between ideas."}], "approved": False}
+    from app.prompts.critique.critique_framework import DIMENSIONS
+    low = {
+        "dimension_scores": {name: 40 for name in DIMENSIONS},
+        "quality_score": 40,
+        "issues": [{"category": "flow", "severity": "medium", "dimension": "flow",
+                     "description": "Jumps between ideas."}],
+        "approved": False
+    }
     client = LLMClient(fake_responder=lambda s, u: json.dumps(low))
     reviewed = EducationalReviewService(llm_client=client).review(_make_lesson(), _make_units())
     assert reviewed.approved is False
 
 
 def test_review_invalid_score_raises():
-    bad = {"quality_score": 150, "issues": [], "approved": True}
+    from app.prompts.critique.critique_framework import DIMENSIONS
+    bad = {
+        "dimension_scores": {name: 90 for name in DIMENSIONS},
+        "quality_score": 150,
+        "issues": [],
+        "approved": True
+    }
     client = LLMClient(fake_responder=lambda s, u: json.dumps(bad))
     with pytest.raises(ReviewError):
         EducationalReviewService(llm_client=client).review(_make_lesson(), _make_units())

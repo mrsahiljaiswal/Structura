@@ -51,8 +51,12 @@ PROMPT_REGISTRY: dict[str, PromptEntry] = {
         "knowledge_extraction", "v1.0.0", build_knowledge_extraction_system_prompt
     ),
     "planner": PromptEntry("planner", "v1.0.0", build_planner_system_prompt),
-    "authoring": PromptEntry("authoring", "v1.0.0", build_authoring_system_prompt),
-    "review": PromptEntry("review", "v1.0.0", build_review_system_prompt),
+    "authoring": PromptEntry(
+        "authoring", "v2.0.0", build_authoring_system_prompt
+    ),  # v2.0.0: textbook lesson structure (problem-first) + reflection questions, Priority 2
+    "review": PromptEntry(
+        "review", "v2.0.0", build_review_system_prompt
+    ),  # v2.0.0: weighted multi-dimensional rubric replacing flat quality_score, Priority 1
 }
 
 

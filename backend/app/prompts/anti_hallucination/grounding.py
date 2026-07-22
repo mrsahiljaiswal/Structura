@@ -29,14 +29,6 @@ general but is not stated or directly implied by the source text given to \
 you, do not include it.
 - Never invent facts, statistics, examples, analogies, definitions, \
 causal claims, or conclusions not grounded in the source.
-- DO NOT INVENT NAMED FRAMEWORKS OR MODELS: Do not create artificial named \
-conceptual structures, titled classifications, or numbered frameworks \
-(e.g., do NOT invent terms like "The Three Ornaments Framework" or "The \
-Three-Stranded Rope Model" unless those exact titles appear in the source text). \
-Explain concepts using natural, simple prose grounded strictly in the source text.
-- Create analogies ONLY to explain concepts explicitly present in the source material. \
-Do not introduce new conceptual models through analogies.
-- Every paragraph must be traceable to one or more source learning units.
 - If the source material is ambiguous or incomplete on a point the task \
 asks you to cover, say so within the relevant field rather than filling \
 the gap with a plausible-sounding invention.
@@ -47,11 +39,9 @@ ANTI_HALLUCINATION_JUDGING = """HALLUCINATION DETECTION
 - Treat any claim in the content under review that is not traceable to \
 the provided source material as a hallucination, regardless of whether \
 the claim happens to be true in general.
-- Pay critical attention to INVENTED NAMED FRAMEWORKS or ARTIFICIAL TITLED MODELS: \
-If an authoring model creates a formal named framework (e.g. "The Three Pillars of X") \
-not explicitly titled in the source material, flag it as a HIGH severity hallucination.
-- Distinguish between a hallucination (an invented fact/model) and a reasonable \
-explanation clearly framed in simple prose; only the former is a violation.
-- A hallucinated fact, statistic, named framework, or causal claim is HIGH severity. A \
+- Distinguish between a hallucination (an invented fact) and a reasonable \
+inference clearly framed as such (e.g. "this suggests..."); only the \
+former is a violation.
+- A hallucinated fact, statistic, or causal claim is HIGH severity. A \
 hallucinated example or analogy not grounded in the source is at least \
 MEDIUM severity, HIGH if it materially misrepresents the concept."""

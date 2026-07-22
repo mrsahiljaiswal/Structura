@@ -188,37 +188,42 @@ class StructuraPipeline:
                 for lesson in chapter.lessons:
                     print(f"     Lesson: {lesson.title}")
 
-        # Module 8: Lesson Authoring
-        print("\n[Module 8] Lesson Authoring...")
-        authored_lessons = self.authoring.author_all(plan, learning_units)
-        print(f"Lessons Authored: {len(authored_lessons)}")
-        exporter = LessonAuthoringExporter()
-        for lesson in authored_lessons:
-            if not self.skip_validation:
-                LessonAuthoringValidator().validate(lesson)
-            if self.save_intermediates:
-                exporter.export(lesson, str(self.output_dir))
+        # Modules 8 & 9: Lesson Authoring & Educational Review (with Repair Loop)
+        print("\n[Modules 8 & 9] Lesson Authoring & Educational Review (with Repair Loop)...")
+        from app.pipeline.repair_loop import LessonRepairLoop
+        repair_loop = LessonRepairLoop(self.authoring, self.reviewer)
 
-        # Module 9: Educational Review (mandatory quality gate)
-        print("[Module 9] Educational Review...")
+        lesson_titles_by_id = {
+            lesson.lesson_id: lesson.title
+            for module in plan.modules for chapter in module.chapters for lesson in chapter.lessons
+        }
+
         reviewed_lessons = {}
+        author_exporter = LessonAuthoringExporter()
         review_exporter = EducationalReviewExporter()
-        for lesson in authored_lessons:
-            print(f"  Reviewing lesson: {lesson.title}...")
-            reviewed = self.reviewer.review(lesson, learning_units)
-            if not self.skip_validation:
-                try:
-                    EducationalReviewValidator().validate(reviewed)
-                    reviewed_lessons[lesson.lesson_id] = reviewed
-                    print(f"    [Approved] (score: {reviewed.quality_score})")
-                except Exception as e:
-                    print(f"    [Rejected] : {e}")
-            else:
-                reviewed_lessons[lesson.lesson_id] = reviewed
-                status = "Approved" if reviewed.approved else "Rejected"
-                print(f"    [{status}] (score: {reviewed.quality_score})")
-            if self.save_intermediates:
-                review_exporter.export(reviewed, str(self.output_dir))
+
+        for module in plan.modules:
+            for chapter in module.chapters:
+                for planned in chapter.lessons:
+                    prereq_titles = [lesson_titles_by_id[p] for p in planned.prerequisites if p in lesson_titles_by_id]
+                    print(f"  Processing lesson: {planned.title}...")
+                    reviewed = repair_loop.author_and_review(planned, learning_units, prereq_titles)
+
+                    if not self.skip_validation:
+                        try:
+                            EducationalReviewValidator().validate(reviewed)
+                            reviewed_lessons[reviewed.lesson.lesson_id] = reviewed
+                            print(f"    [Approved] (score: {reviewed.quality_score})")
+                        except Exception as e:
+                            print(f"    [Rejected] : {e}")
+                    else:
+                        reviewed_lessons[reviewed.lesson.lesson_id] = reviewed
+                        status = "Approved" if reviewed.approved else "Rejected"
+                        print(f"    [{status}] (score: {reviewed.quality_score})")
+
+                    if self.save_intermediates:
+                        author_exporter.export(reviewed.lesson, str(self.output_dir))
+                        review_exporter.export(reviewed, str(self.output_dir))
 
         if not reviewed_lessons:
             raise Exception("No lessons passed review - cannot assemble course.")
