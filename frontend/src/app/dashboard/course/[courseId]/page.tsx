@@ -446,7 +446,7 @@ export default function CourseDetailPage() {
           <div className="lg:col-span-3 space-y-4">
             <h2 className="text-lg font-bold text-foreground tracking-tight border-b border-border/40 pb-3 mb-4 flex items-center gap-2">
               <BookMarked className="h-5 w-5 text-primary" />
-              <span>Chapters Outline Tree</span>
+              <span>Chapters</span>
             </h2>
 
             {course.chapters.map((ch) => {
