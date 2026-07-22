@@ -49,7 +49,7 @@ The system uses a **Layered Service-Repository Architecture** built on:
 - **Hybrid JSONB Support**: Native JSONB columns store takeaways, worked examples, and quiz scores inside relational rows.
 
 ### 3. AI Models: Dual-Model Gemini Allocation
-- **Gemini 3.1 Flash Lite**: Ingests up to 1,000,000 tokens per window with strict JSON compliance. Handles PDF normalization, topological planning, and verbatim lesson authoring.
+- **Gemini 3.1 Flash Lite**: Ingests up to 1,000,000 tokens per window with strict JSON compliance. Handles PDF extraction, normalization, structure analysis, educational planning, lesson authoring, and review verification.
 - **Gemini 2.5 Flash Lite**: Delivers sub-second latency for interactive RAG Chatbot queries, Socratic Explainers, and practice quizzes.
 
 ### 4. Frontend: Next.js 15 & TanStack React Query v5
@@ -64,8 +64,8 @@ The system uses a **Layered Service-Repository Architecture** built on:
 - `upload-drop-zone.tsx` receives PDF binary streams (< 50MB) and dispatches multipart POST requests to `/api/v1/documents/upload`.
 - FastAPI streams binary bytes into `DocumentNormalizationService` without saving temporary files to disk.
 
-### 2. 8-Stage NLP Document Pipeline Subsystem
-- Normalization $\rightarrow$ Document Understanding $\rightarrow$ Structural Analysis $\rightarrow$ Knowledge Extraction $\rightarrow$ Semantic Segmentation $\rightarrow$ Educational Planning $\rightarrow$ Lesson Authoring $\rightarrow$ Persistence.
+### 2. 10-Stage NLP Document Pipeline Subsystem
+- Extraction $\rightarrow$ Normalization $\rightarrow$ Document Understanding $\rightarrow$ Structural Analysis $\rightarrow$ Knowledge Extraction $\rightarrow$ Semantic Segmentation $\rightarrow$ Educational Planning $\rightarrow$ Lesson Authoring $\rightarrow$ Educational Review (with retry repair loops) $\rightarrow$ Course Assembly (persistence).
 
 ### 3. Grounded RAG AI Tutor Subsystem
 - `/api/v1/chat` queries enrolled user courses, computes keyword/fuzzy relevance grounding scores, rejects candidates below `0.15` threshold, and passes top context chunks to `gemini-2.5-flash-lite`.

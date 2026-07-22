@@ -1,6 +1,6 @@
 # 🗄️ PostgreSQL Database Schema Reference
 
-Structura uses **PostgreSQL** with **Async SQLAlchemy 2.0**. Primary keys use `PG_UUID` (v4 UUIDs) for cryptographic security and URL safe identifiers. Array fields use native PostgreSQL `JSONB` columns.
+Structura uses **PostgreSQL** with **Async SQLAlchemy 2.0**. Primary keys use `PG_UUID` (v4 UUIDs) or integers, and array/nested data fields use native PostgreSQL `JSONB` columns.
 
 ---
 
@@ -30,12 +30,11 @@ Structura uses **PostgreSQL** with **Async SQLAlchemy 2.0**. Primary keys use `P
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `UUID` | `PRIMARY KEY` | Cryptographic v4 UUID |
-| `filename` | `VARCHAR(255)` | `NOT NULL` | Original uploaded PDF filename |
-| `stored_filename` | `VARCHAR(255)` | `NOT NULL` | Storage filename |
+| `filename` | `VARCHAR(512)` | `NOT NULL` | Original uploaded PDF filename |
+| `stored_filename` | `VARCHAR(512)` | `NOT NULL` | Storage filename on server |
 | `size_bytes` | `INTEGER` | `NOT NULL` | File size in bytes |
-| `page_count` | `INTEGER` | `NULLABLE` | Total PDF pages |
-| `uploaded_at` | `TIMESTAMP` | `DEFAULT NOW()` | Upload timestamp |
-| `status` | `VARCHAR(50)` | `NOT NULL` | `processing`, `completed`, `error` |
+| `uploaded_at` | `TIMESTAMP` | `DEFAULT NOW()` | Ingestion timestamp |
+| `status` | `VARCHAR(64)` | `DEFAULT 'pending'` | Processing status (`pending`, `completed`, `error`) |
 
 ---
 
@@ -43,22 +42,22 @@ Structura uses **PostgreSQL** with **Async SQLAlchemy 2.0**. Primary keys use `P
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `UUID` | `PRIMARY KEY` | Course UUID |
-| `user_id` | `VARCHAR(255)` | `NOT NULL, INDEX` | Clerk User ID owner |
+| `user_id` | `VARCHAR(255)` | `NULLABLE, INDEX` | Clerk User ID owner |
 | `document_id` | `UUID` | `FOREIGN KEY(documents.id)` | Source PDF document ID |
-| `title` | `VARCHAR(255)` | `NOT NULL` | Course title |
+| `title` | `VARCHAR(1024)` | `NOT NULL` | Course title |
 | `description` | `TEXT` | `NULLABLE` | Overview summary |
-| `difficulty` | `VARCHAR(50)` | `DEFAULT 'Intermediate'` | `Beginner`, `Intermediate`, `Advanced` |
-| `created_at` | `TIMESTAMP` | `DEFAULT NOW()` | Creation timestamp |
+| `difficulty` | `VARCHAR(64)` | `NULLABLE` | `Beginner`, `Intermediate`, `Advanced` |
+| `estimated_time` | `VARCHAR(64)` | `NULLABLE` | Dynamic estimated duration label |
 
 ---
 
 ### 3. `chapters`
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | `PRIMARY KEY` | Chapter UUID |
+| `id` | `INTEGER` | `PRIMARY KEY` | Auto-incrementing Chapter ID |
 | `course_id` | `UUID` | `FOREIGN KEY(courses.id) ON DELETE CASCADE` | Parent course ID |
-| `title` | `VARCHAR(255)` | `NOT NULL` | Chapter title |
-| `position` | `INTEGER` | `NOT NULL` | Chapter sequence order |
+| `title` | `VARCHAR(1024)` | `NOT NULL` | Chapter title |
+| `position` | `INTEGER` | `DEFAULT 0` | Chapter sequence order |
 
 ---
 
@@ -66,9 +65,28 @@ Structura uses **PostgreSQL** with **Async SQLAlchemy 2.0**. Primary keys use `P
 | Column | Type | Constraints | Description |
 | :--- | :--- | :--- | :--- |
 | `id` | `UUID` | `PRIMARY KEY` | Lesson UUID |
-| `chapter_id` | `UUID` | `FOREIGN KEY(chapters.id) ON DELETE CASCADE` | Parent chapter ID |
-| `title` | `VARCHAR(255)` | `NOT NULL` | Lesson title |
-| `content` | `TEXT` | `NOT NULL` | Markdown theory text |
-| `examples` | `JSONB` | `NULLABLE` | Worked examples array |
-| `key_takeaways` | `JSONB` | `NULLABLE` | Takeaway concepts array |
-| `position` | `INTEGER` | `NOT NULL` | Lesson sequence order |
+| `chapter_id` | `INTEGER` | `FOREIGN KEY(chapters.id) ON DELETE CASCADE` | Parent chapter ID |
+| `title` | `VARCHAR(1024)` | `NOT NULL` | Lesson title |
+| `content` | `TEXT` | `NULLABLE` | Compiled Markdown theory, definitions, analogies, and takeaways |
+| `examples` | `JSONB` | `NULLABLE` | Array of worked examples |
+| `key_takeaways` | `JSONB` | `NULLABLE` | Array of key concept takeaways |
+| `summary` | `TEXT` | `NULLABLE` | Lesson summary text |
+| `is_completed` | `INTEGER` | `DEFAULT 0` | Completed state indicator (0 = uncompleted, 1 = completed) |
+| `position` | `INTEGER` | `DEFAULT 0` | Lesson sequence order |
+
+---
+
+### 5. `user_progress`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `user_id` | `VARCHAR(255)` | `PRIMARY KEY` | Clerk User ID |
+| `pinned_courses` | `JSONB` | `NOT NULL, DEFAULT []` | Pinned course UUIDs array |
+| `favorite_courses` | `JSONB` | `NOT NULL, DEFAULT []` | Favorited course UUIDs array |
+| `completed_lessons` | `JSONB` | `NOT NULL, DEFAULT []` | Completed lesson UUIDs array |
+| `study_time_total` | `INTEGER` | `DEFAULT 0` | Cumulative study duration in seconds |
+| `study_time_by_day` | `JSONB` | `NOT NULL, DEFAULT {}` | Daily study time analytics mapping (`YYYY-MM-DD -> seconds`) |
+| `quiz_scores` | `JSONB` | `NOT NULL, DEFAULT {}` | Quiz score records mapping (`lesson_id -> scores_array`) |
+| `lesson_notes` | `JSONB` | `NOT NULL, DEFAULT {}` | User-edited lesson notes mapping (`lesson_id -> markdown_text`) |
+| `streak_count` | `INTEGER` | `DEFAULT 0` | Consecutive days active count |
+| `streak_last_date` | `VARCHAR(64)` | `NULLABLE` | Timestamp string of last active day |
+| `chat_history` | `JSONB` | `NOT NULL, DEFAULT []` | User-tutor chat dialogue JSON records array |

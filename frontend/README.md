@@ -1,86 +1,63 @@
-# frontend
+# 🚀 Structura Frontend Application
 
-Production-ready Next.js 15 project scaffold. This repo is configured only —
-no application pages have been built yet.
+This is the Next.js 15 client application for the Structura e-course platform. It is styled with a modern dark glassmorphic design system and integrates with Clerk Authentication, TanStack Query, and the FastAPI backend.
 
-## Stack
+## Tech Stack
 
-- **Next.js 15** (App Router, Turbopack dev server)
-- **TypeScript** (strict mode)
-- **Tailwind CSS v4** (CSS-first config, no `tailwind.config.js` needed)
-- **ESLint 9** (flat config, `next/core-web-vitals` + `next/typescript`)
-- **Prettier** (with `prettier-plugin-tailwindcss` for class sorting)
-- **shadcn/ui** (`new-york` style, configured via `components.json`)
-- **TanStack React Query v5** (client provider + SSR-safe query client)
-- **React Hook Form** + **Zod** (+ `@hookform/resolvers`) for forms/validation
-- **Axios** (shared instance with interceptors in `src/lib/axios.ts`)
-- **Lucide React** for icons
-- **Framer Motion** for animation
+- **Next.js 15 (App Router)** & **React 19**
+- **TypeScript**
+- **Tailwind CSS v4** (CSS-first configurations)
+- **TanStack React Query v5** (Client state management & API caching)
+- **Framer Motion** (Smooth transitions & animations)
+- **Clerk Auth** (User sign-up, sign-in, and auth gate middleware)
 
-## Getting started
+---
 
+## Key Features & Pages Built
+
+### 1. 🎛️ Dashboard Pages (`src/app/dashboard`)
+- **Main Hub (`dashboard/page.tsx`)**: Displays enrolled courses list, dynamic statistics cards (completed lessons, overall quiz averages, and daily streak counts), and interactive study time charts.
+- **AI Study Tutor (`dashboard/tutor/page.tsx`)**: 3-feature workspace:
+  - *Course-Grounded RAG Chat*: Conversations strictly scoped to selected course texts.
+  - *Socratic Concept Explainer*: Breaks down terms into four levels (ELI5, Analogy, Deep Academic, and Misconceptions).
+  - *Practice Challenge Generator*: Produces custom interactive quizzes (Multiple Choice, True/False, Mixed) on demand.
+- **Interactive Reader (`dashboard/course/[id]/page.tsx`)**: Features:
+  - Sidebar lesson navigation hierarchy.
+  - Custom SVG-rendered concept flowchart mind maps.
+  - Markdown lesson viewer with glowing text highlighting on query redirect.
+  - Built-in audio narrator with double `speechSynthesis.cancel()` loops preventing voice leaks.
+  - Dynamic practice quizzes styled with emerald/rose answer keys and scorecard tallies.
+
+### 2. 🛡️ Route Middleware (`src/middleware.ts`)
+- Restricts dashboard access to authenticated users via Clerk verification hooks.
+
+### 3. 🎨 Dark Glassmorphic Theme System
+- Integrated shadcn/ui components customized inside `src/app/globals.css` using modern color tokens and hover animations.
+
+---
+
+## Setup & Running Locally
+
+### Prerequisites
+- Node.js 18+ & npm
+- A running instance of the FastAPI backend on port 8000
+
+### 1. Installation
 ```bash
 npm install
-cp .env.example .env.local
+```
+
+### 2. Configure Environment Variables
+Create a `.env.local` file inside the `frontend/` directory:
+```env
+NEXT_PUBLIC_API_URL="http://localhost:8000"
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="your-clerk-publishable-key"
+CLERK_SECRET_KEY="your-clerk-secret-key"
+```
+
+### 3. Start Development Server
+```bash
 npm run dev
 ```
+Open http://localhost:3000 to explore the application dashboard.
 
-The app runs at http://localhost:3000. Note: no `page.tsx` has been created
-yet, so the root route will 404 until you add one — that's expected for a
-"configuration only" scaffold.
-
-## Scripts
-
-| Command              | Description                              |
-| --------------------- | ----------------------------------------- |
-| `npm run dev`          | Start the dev server (Turbopack)          |
-| `npm run build`        | Production build                          |
-| `npm run start`        | Start the production server               |
-| `npm run lint`         | Lint with ESLint                          |
-| `npm run lint:fix`     | Lint and auto-fix                         |
-| `npm run format`       | Format with Prettier                      |
-| `npm run format:check` | Check formatting without writing          |
-| `npm run type-check`   | Run `tsc --noEmit`                        |
-
-## Adding shadcn/ui components
-
-The `Button` component (`src/components/ui/button.tsx`) is included as the
-canonical example. Add more components with the CLI once dependencies are
-installed:
-
-```bash
-npx shadcn@latest add input form dialog
-```
-
-## Project structure
-
-```
-src/
-  app/
-    layout.tsx      # Root layout (fonts, metadata, Providers)
-    providers.tsx    # Client-side providers (React Query)
-    globals.css      # Tailwind v4 import + shadcn/ui design tokens
-  components/
-    ui/              # shadcn/ui components
-  hooks/             # Reusable client hooks
-  lib/
-    utils.ts         # cn() class-merge helper
-    axios.ts         # Shared Axios instance
-    query-client.ts  # SSR-safe React Query client factory
-    env.ts           # Zod-validated environment variables
-  types/             # Shared, app-wide types
-```
-
-## Environment variables
-
-See `.env.example`. Copy it to `.env.local` and adjust as needed.
-Variables are validated at startup via `src/lib/env.ts` (Zod).
-
-## Notes
-
-- This environment could not reach the npm registry, so `node_modules` and
-  the lockfile were **not** generated here. Run `npm install` locally to
-  install dependencies and produce a lockfile before committing.
-- Tailwind v4 is configured CSS-first (`@import "tailwindcss"` +
-  `@theme inline` in `globals.css`) — there is intentionally no
-  `tailwind.config.ts`.

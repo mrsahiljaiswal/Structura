@@ -2,14 +2,14 @@
 
 > **Transform Raw PDF Textbooks & Engineering Manuals into Structured, Interactive E-Courses in under 45 seconds.**
 
-Structura is a full-stack document-intelligence platform powered by an **8-Stage NLP Pipeline** using **Google Gemini 3.1 & 2.5 Flash Lite**. It enforces a strict **100% Verbatim Preservation Directive** to completely eliminate LLM hallucinations while generating interactive courses, grounded RAG AI tutoring, SVG concept flowcharts, and dynamic study analytics.
+Structura is a full-stack document-intelligence platform powered by a **10-Stage Document Intelligence Pipeline** using **Google Gemini 3.1 & 2.5 Flash Lite**. It enforces strict grounding using textbook problem-first authoring, multi-dimensional reviews, auto-corrective repair retry loops, grounded RAG AI tutoring, interactive quizzes, dynamic SVG flowcharts, and persistent study analytics.
 
 ---
 
 ## 📑 Table of Contents
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
-- [The 8-Stage Document Intelligence Pipeline](#-the-8-stage-document-intelligence-pipeline)
+- [The 10-Stage Document Intelligence Pipeline](#-the-10-stage-document-intelligence-pipeline)
 - [Tech Stack](#-tech-stack)
 - [Local Setup & Installation](#-local-setup--installation)
 - [API Endpoints Reference](#-api-endpoints-reference)
@@ -19,18 +19,20 @@ Structura is a full-stack document-intelligence platform powered by an **8-Stage
 
 ## ✨ Key Features
 
-1. **Strict 100% Verbatim Preservation Directive**:
-   - Acts as a structural compiler for uploaded textbooks. Zero outside facts or fabricated ungrounded examples are introduced.
-2. **Dual-Model LLM Routing**:
-   - **Google Gemini 3.1 Flash Lite**: Ingests massive PDF context windows (1M tokens) for structural analysis and lesson authoring.
+1. **Strict Grounding & Problem-First Authoring**:
+   - Textbook-style problem-first teaching templates with strict source text grounding mapping segment content back to exact pages using evidence mapping.
+2. **Auto-Corrective Repair Retry Loop**:
+   - Automated quality gate evaluating lessons against a **9-Dimensional Critique Rubric** (grounding, concept accuracy, completeness, pedagogy, clarity, etc.) with dynamic server-side scoring. Automatically feeds back review rejections to self-heal lessons (max 2 retries).
+3. **Dual-Model LLM Routing**:
+   - **Google Gemini 3.1 Flash Lite**: Ingests massive PDF context windows (1M tokens) for structural analysis, topological planning, lesson authoring, and review validation.
    - **Google Gemini 2.5 Flash Lite**: Delivers sub-second response times for the course-grounded RAG AI Tutor and Practice Challenge quiz generator.
-3. **Interactive SVG Concept Flowcharts**:
+4. **Interactive SVG Concept Flowcharts**:
    - Vector path diagrams connecting the Central Knowledge Hub to Chapter Nodes and Lesson Branches.
-4. **Course-Grounded RAG AI Study Suite**:
-   - Feature 1: **RAG Chat** with relevance filter (`score > 0.15`) preventing false course grounding.
+5. **Course-Grounded RAG AI Study Suite**:
+   - Feature 1: **RAG Chat** with persistent dialogue history and strict course relevance filtering.
    - Feature 2: **Socratic Explainer** (ELI5, Analogy, Deep Academic Breakdown, Misconceptions).
    - Feature 3: **Practice Challenge Quiz Generator** with question type selection (*Multiple Choice*, *True/False*, *Mixed*, *Coding/Short Answer*).
-5. **Real-Time Study Analytics & Time Persistence**:
+6. **Real-Time Study Analytics & Time Persistence**:
    - Automatically tracks study time across lesson reading, AI Tutor conversations, and practice quizzes, persisting daily streaks and average quiz scores.
 
 ---
@@ -53,24 +55,26 @@ Structura is a full-stack document-intelligence platform powered by an **8-Stage
              ▼                                 ▼
 ┌─────────────────────────┐       ┌─────────────────────────┐
 │  Gemini 3.1 Flash Lite  │       │  Gemini 2.5 Flash Lite  │
-│  • 8-Stage PDF Ingestion │       │  • Grounded RAG Chatbot │
+│  • 10-Stage Pipeline    │       │  • Grounded RAG Chatbot │
 │  • Structural Analysis  │       │  • Socratic Explainer   │
-│  • Lesson Authoring     │       │  • Practice Quizzes     │
+│  • Lesson Review/Repair │       │  • Practice Quizzes     │
 └─────────────────────────┘       └─────────────────────────┘
 ```
 
 ---
 
-## 🔬 The 8-Stage Document Intelligence Pipeline
+## 🔬 The 10-Stage Document Intelligence Pipeline
 
-1. **Document Normalization**: Extracts raw PDF text streams via `PyPDF`/`PDFPlumber` and cleans irregular whitespace.
-2. **Document Understanding**: Classifies document types (`book`, `lecture_notes`, `paper`) and extracts metadata via `gemini-3.1-flash-lite`.
-3. **Structural Analysis**: Constructs a hierarchical node tree mapping headings, sections, and subsections.
-4. **Knowledge Extraction**: Extracts domain concepts, definitions, and directed prerequisite edges (`Concept A -> Concept B`).
-5. **Semantic Segmentation**: Groups concepts into complete Learning Units without character truncation caps.
-6. **Educational Planning**: Computes a deterministic topological sort on concept prerequisite edges to arrange topics in optimal learning order.
-7. **Lesson Authoring**: Authors Markdown theory, worked examples, and key takeaways enforcing 100% verbatim text retention.
-8. **Persistence**: Saves relational `Course`, `Chapter`, and `Lesson` models into PostgreSQL using Async SQLAlchemy.
+1. **Document Extraction**: Extracts raw text blocks using layout-aware spatial extractors (`PyPDF`/`PDFPlumber`).
+2. **Document Normalization**: Cleans whitespace, standardizes character sets, and formats the text stream.
+3. **Document Understanding**: Classifies document types and extracts title/author metadata via `gemini-3.1-flash-lite`.
+4. **Structural Analysis**: Constructs a hierarchical node tree mapping sections and subsection boundaries.
+5. **Knowledge Extraction**: Identifies domain concepts, definitions, and directed prerequisite edges (`Concept A -> Concept B`).
+6. **Semantic Segmentation**: Groups concepts into complete Learning Units without character truncation, keeping equations and code snippets intact.
+7. **Educational Planning**: Performs a deterministic topological sort on concept prerequisite edges to arrange chapters and lessons logically.
+8. **Lesson Authoring**: Authors Markdown content using textbook problem-first templates with evidence source mapping.
+9. **Educational Review (Repair Loop)**: Evaluates lessons against the 9-dimensional rubric, routing failures through the auto-corrective repair loop (up to 2 retries).
+10. **Course Assembly**: Validates complete course graph integrity and commits relational records to PostgreSQL using Async SQLAlchemy.
 
 ---
 

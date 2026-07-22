@@ -1,99 +1,98 @@
-# backend
+# 🚀 Structura Backend Service
 
-Production-ready FastAPI backend scaffold. This repo is configured only —
-no business logic has been implemented, beyond a health check.
+This is the production-ready FastAPI async backend service powering the Structura adaptive learning platform. It hosts the 10-stage AI document intelligence pipeline and provides API routes for courses, lesson reading, progress persistence, quizzes, and RAG chatbots.
 
-## Stack
+## Tech Stack
 
-- **FastAPI** — ASGI web framework
-- **SQLAlchemy 2** (async, via `asyncpg`) — ORM / database toolkit
-- **Alembic** — schema migrations (sync driver, `psycopg2`)
-- **PostgreSQL**
-- **Pydantic Settings** — typed configuration from environment variables
-- **Uvicorn** — ASGI server
+- **FastAPI** — High-performance ASGI web framework.
+- **SQLAlchemy 2.0** — Async ORM engine utilizing `asyncpg` for PostgreSQL.
+- **Google Gemini SDK** — Large language model interface routing to Gemini 3.1 and 2.5 Flash Lite.
+- **Alembic** — Schema database migrations.
+- **Pydantic v2** — Fast type validation and serialization.
 
-## Getting started
+---
 
-### Option A: Docker Compose (recommended)
+## Project Structure
 
-```bash
-cp .env.example .env
-docker compose up --build
+```
+backend/
+  app/
+    main.py                 # FastAPI application factory & routers registration
+    core/
+      config.py             # Settings configurations validated via Pydantic Settings
+    api/
+      deps.py               # Shared API dependencies (e.g. Async Session Dependency)
+      router.py             # Backend routes central register
+      routes/
+        auth.py             # Clerk verification hooks
+        courses.py          # Course generation, list, deletion, and details endpoints
+        chat.py             # RAG Chatbot tutor queries with persistent histories
+        health.py           # GET liveness and readiness health checks
+    db/
+      base.py               # Declarative SQLAlchemy Base class
+      session.py            # Async engine and AsyncSession factory
+    models/
+      course_models.py      # SQLAlchemy Models (Document, Course, Chapter, Lesson, UserProgress)
+    schemas/
+      course.py             # Pydantic serialization schemas for course outputs
+    services/
+      document_extraction/  # Stage 1: Spatial layout text reader
+      document_normalization/# Stage 2: Whitespace and characters cleaner
+      document_understanding/# Stage 3: Document profiling and metadata generator
+      document_structure/   # Stage 4: Heading hierarchies builder
+      knowledge_extraction/ # Stage 5: Concept and prerequisite edges miner
+      semantic_segmentation/# Stage 6: Learning units bundler
+      educational_planner/  # Stage 7: Topological sort planner
+      lesson_authoring/     # Stage 8: Textbook problem-first authoring service
+      lesson_review/        # Stage 9: 9-Dimensional Critique Rubric evaluator
+      course_assembly/      # Stage 10: Course graph validator & persistence assembler
+    pipeline/
+      orchestrator.py       # StructuraPipeline runner executing all stages sequentially
+      repair_loop.py        # LessonRepairLoop managing re-authoring and auto-repair retries
+    prompts/
+      registry.py           # Prompts versions compile manager
+      modules/              # Modules system/user prompt builders
+      repair/               # Review repair feedback prompt builders
+  tests/                    # Pytest backend test suite (48 unit tests)
 ```
 
-The API is available at http://localhost:8000, docs at
-http://localhost:8000/api/v1/docs.
+---
 
-### Option B: Local Python environment
+## Setup & Running Locally
 
-Requires a running PostgreSQL instance (see `docker-compose.yml` for a
-standalone `db` service: `docker compose up db`).
+### Prerequisites
+- Python 3.11+
+- Running PostgreSQL Database instance
 
+### 1. Installation
 ```bash
 python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements-dev.txt
+# Windows: .venv\Scripts\activate | Unix: source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-cp .env.example .env                # adjust POSTGRES_* as needed
+### 2. Configure Environment Variables
+Create a `.env` file inside the `backend/` directory:
+```env
+DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/structura"
+GEMINI_API_KEY="your-gemini-api-key"
+CLERK_API_KEY="your-clerk-api-key"
+```
 
-alembic upgrade head                 # applies migrations (none yet, but wired up)
+### 3. Apply Migrations & Start Server
+```bash
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
+The API docs will be available at: http://localhost:8000/docs.
 
-## Scripts / commands
+---
 
-| Command                                    | Description                          |
-| ------------------------------------------- | ------------------------------------- |
-| `uvicorn app.main:app --reload`             | Run the dev server                    |
-| `alembic revision --autogenerate -m "msg"`  | Generate a migration from model diffs |
-| `alembic upgrade head`                      | Apply all pending migrations          |
-| `alembic downgrade -1`                      | Roll back the last migration          |
-| `pytest`                                    | Run tests                             |
-| `ruff check .`                              | Lint                                  |
-| `ruff format .`                             | Format                                |
-| `mypy app`                                  | Type-check                            |
-
-## Project structure
-
+## Running Backend Tests
+Execute unit tests using the correct Python path configuration:
+```bash
+$env:PYTHONPATH="backend"; python -m pytest backend
 ```
-app/
-  main.py            # FastAPI app factory: lifespan, CORS, router mounting
-  core/
-    config.py         # Settings (env vars) via pydantic-settings
-    logging.py         # Centralized logging config
-  api/
-    deps.py             # Shared dependencies (e.g. SessionDep)
-    router.py           # Aggregates all route modules
-    routes/
-      health.py          # GET /health, /health/ready
-  db/
-    base.py              # Declarative Base + naming convention
-    session.py            # Async engine, session factory, get_db()
-  models/                 # SQLAlchemy ORM models (empty — add per entity)
-  schemas/                # Pydantic schemas (empty — add per entity)
-alembic/
-  env.py                  # Migration environment, wired to app settings
-  versions/                # Migration files land here
-tests/
-  conftest.py               # Async test client fixture
-  test_health.py             # Health check test
-```
-
-## Adding a new resource
-
-1. Define the ORM model in `app/models/<name>.py`, import it in
-   `app/models/__init__.py`.
-2. Define Pydantic schemas in `app/schemas/<name>.py`.
-3. Generate a migration: `alembic revision --autogenerate -m "add <name>"`,
-   review the generated file, then `alembic upgrade head`.
-4. Add a route module under `app/api/routes/<name>.py` and register it in
-   `app/api/router.py`.
-
-## Environment variables
-
-See `.env.example`. All configuration is validated at startup via
-`app/core/config.py` (Pydantic Settings) — invalid or missing required
-values fail fast instead of surfacing as runtime errors.
 
 ## Health checks
 

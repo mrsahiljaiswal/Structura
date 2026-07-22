@@ -1,76 +1,91 @@
-# 🧠 The 8-Stage NLP Document Intelligence Pipeline
+# 🧠 The 10-Stage Document Intelligence Pipeline
 
-The core engine of Structura is an 8-stage NLP pipeline that transforms raw PDF binary documents into structured, interactive courses.
+The core engine of Structura is a 10-stage document intelligence pipeline that transforms raw PDF binary documents into structured, interactive, and pedagogically sound courses.
 
 ---
 
 ## Pipeline Overview
 
 ```
-[Raw PDF] ──> Stage 1: Document Normalization
-              ──> Stage 2: Document Understanding (Gemini 3.1)
-              ──> Stage 3: Structural Analysis
-              ──> Stage 4: Knowledge Graph Extraction
-              ──> Stage 5: Semantic Segmentation
-              ──> Stage 6: Educational Planner (Topological Sort + Gemini 3.1)
-              ──> Stage 7: Lesson Authoring (100% Verbatim + Gemini 3.1)
-              ──> Stage 8: Database Persistence (PostgreSQL)
+[Raw PDF] ──> Stage 1: Document Extraction
+              ──> Stage 2: Document Normalization
+              ──> Stage 3: Document Understanding (Gemini 3.1)
+              ──> Stage 4: Document Structure
+              ──> Stage 5: Knowledge Extraction
+              ──> Stage 6: Semantic Segmentation
+              ──> Stage 7: Educational Planner (Gemini 3.1)
+              ──> Stage 8: Lesson Authoring (Problem-First + Gemini 3.1)
+              ──> Stage 9: Educational Review (Critique Rubric + Gemini 3.1)
+                  └──> (If Rejected) Auto-Repair Retry Loop (Max 2 Attempts)
+              ──> Stage 10: Course Assembly & Database Persistence (PostgreSQL)
 ```
 
 ---
 
 ## Detailed Stage Breakdown
 
-### Stage 1: Document Normalization (`document_normalization`)
+### Stage 1: Document Extraction (`document_extraction`)
 - **Input**: Raw PDF binary byte stream.
-- **Process**: Uses `PyPDF` and `PDFPlumber` to extract page text streams, removing irregular whitespace and linebreaks.
-- **Output**: `NormalizedDocument(pages=[NormalizedPage(page_number, text)])`.
+- **Process**: Reads PDF content using layout-aware spatial text extractors (`PyPDF`, `PDFPlumber`).
+- **Output**: `ExtractedDocument(pages=[ExtractedPage])`.
 
-### Stage 2: Document Understanding (`document_understanding`)
-- **Input**: Front matter (pages 1–5) and back matter (last 3 pages).
-- **Process**: Prompts `gemini-3.1-flash-lite` to classify document type (`book`, `paper`, `lecture_notes`) and extract title/author metadata.
+### Stage 2: Document Normalization (`document_normalization`)
+- **Input**: `ExtractedDocument`.
+- **Process**: Standardizes character sets, fixes irregular whitespace, and normalizes spacing while keeping formatting marks.
+- **Output**: Cleaned and token-ready text stream.
+
+### Stage 3: Document Understanding (`document_understanding`)
+- **Input**: Normalized front matter (pages 1–5) and back matter (last 3 pages).
+- **Process**: Prompts `gemini-3.1-flash-lite` to classify document genre (`book`, `manual`, `lecture_notes`, etc.) and compile metadata.
 - **Output**: `DocumentProfile(document_type, title, author, language)`.
 
-### Stage 3: Structural Analysis (`document_structure`)
-- **Input**: `NormalizedDocument`.
-- **Process**: Parses document heading hierarchies and section boundaries into a tree structure.
-- **Output**: `DocumentStructure(tree=StructureNode(title, text, children))`.
+### Stage 4: Document Structure (`document_structure`)
+- **Input**: Normalized text stream.
+- **Process**: Constructs a nested structural tree mapping heading boundaries (chapters, sections, subsections).
+- **Output**: `DocumentStructure(tree=StructureNode)`.
 
-### Stage 4: Knowledge Extraction (`knowledge_extraction`)
+### Stage 5: Knowledge Extraction (`knowledge_extraction`)
 - **Input**: `DocumentStructure`.
-- **Process**: Extracts domain concepts, definitions, and prerequisite dependencies (`Concept A -> requires -> Concept B`).
-- **Output**: `KnowledgeGraph(concepts=[Concept], edges=[Relationship])`.
+- **Process**: Prompts `gemini-3.1-flash-lite` to identify core concepts, definitions, difficulty levels, and prerequisite dependency edges.
+- **Output**: `KnowledgeGraph(concepts=[Concept], edges=[KnowledgeEdge])`.
 
-### Stage 5: Semantic Segmentation (`semantic_segmentation`)
+### Stage 6: Semantic Segmentation (`semantic_segmentation`)
 - **Input**: `DocumentStructure` and `KnowledgeGraph`.
-- **Process**: Groups concepts into complete **Learning Units** without character truncation caps, ensuring definitions and code blocks remain intact.
+- **Process**: Groups concepts into complete **Learning Units** without arbitrary truncation boundaries, preserving full contextual sentences, tables, and code snippets.
 - **Output**: `LearningUnitSet(units=[LearningUnit])`.
 
-### Stage 6: Educational Planning (`educational_planner`)
+### Stage 7: Educational Planning (`educational_planner`)
 - **Input**: `KnowledgeGraph` and `LearningUnitSet`.
-- **Process**: Performs a deterministic topological sort (Kahn's algorithm) on concept prerequisite edges to order learning topics logically. Prompts `gemini-3.1-flash-lite` to structure a `CoursePlan` containing Modules → Chapters → Lessons.
-- **Output**: `CoursePlan(modules=[ModulePlan(chapters=[ChapterPlan(lessons=[PlannedLesson])])])`.
+- **Process**: Performs a deterministic topological sort on prerequisite edges to sequence concepts. Prompts `gemini-3.1-flash-lite` to output a structured curriculum.
+- **Output**: `CoursePlan(modules=[PlannedModule(chapters=[PlannedChapter(lessons=[PlannedLesson])])])`.
 
-### Stage 7: Lesson Authoring Engine (`lesson_authoring`)
-- **Input**: `PlannedLesson` and source `LearningUnit` text.
-- **Process**: Prompts `gemini-3.1-flash-lite` with the **100% Verbatim Preservation Directive**. Formats complete source text into structured Markdown headings, theory, worked examples, and key takeaways with zero LLM hallucination.
-- **Output**: `Lesson(title, content, examples, key_takeaways)`.
+### Stage 8: Lesson Authoring (`lesson_authoring`)
+- **Input**: `PlannedLesson` and source `LearningUnit` contents.
+- **Process**: Prompts `gemini-3.1-flash-lite` to output structured lessons using a textbook problem-first teaching template. Captures `evidence_mapping` tracing output segments to their exact source pages.
+- **Output**: `Lesson` model.
 
-### Stage 8: Database Persistence (`api/v1/documents.py`)
-- **Input**: Assembled `Course` hierarchy.
-- **Process**: Commits relational `Course`, `Chapter`, and `Lesson` models into PostgreSQL using Async SQLAlchemy, returning the new `course_id`.
-- **Output**: Database record commit & HTTP 200 JSON payload.
+### Stage 9: Educational Review (`lesson_review` / `repair_loop`)
+- **Input**: `Lesson` and source `LearningUnit` contents.
+- **Process**: Evaluates the lesson against a **9-Dimensional Critique Rubric** (grounding, concept accuracy, completeness, pedagogy, clarity, etc.) and performs server-side score validation.
+- **Auto-Repair Loop**: If the lesson falls below the strict grounding floor (score `< 60`) or has high-severity issues (hallucinations), it is routed back to the authoring LLM along with feedback detailing specific failures. Retries run up to **2 times** before falling back to manual review.
+- **Output**: `ReviewedLesson` model (approved or unapproved).
+
+### Stage 10: Course Assembly (`course_assembly`)
+- **Input**: `CoursePlan` and all approved `ReviewedLesson`s.
+- **Process**: Validates complete course graph integrity (no broken prerequisites) and commits relational entities (`Course`, `Chapter`, `Lesson`) into PostgreSQL.
+- **Output**: Database persistent records.
 
 ---
 
-## Strict 100% Verbatim Preservation Directive
+## 9-Dimensional Critique Rubric Weights
 
-To eliminate LLM hallucinations, Stage 7 mandates the following prompt rule:
-
-```
-STRICT VERBATIM PRESERVATION & STRUCTURAL CATEGORIZATION DIRECTIVE:
-1. Include EACH AND EVERY sentence, detail, word, code block, and formula from the PDF source text.
-2. ABSOLUTELY NO TEXT OMISSION OR SHORTENING.
-3. ABSOLUTELY NO NEW TEXT OR OUTSIDE GENERATION.
-4. Organize and format the source text into clean Markdown headings, definitions, and takeaways.
-```
+Server-side score calculation dynamically derives the top-line quality score based on the following weighted dimensions:
+- `grounding` (20%) — Strict grounding verification (minimum floor score: 60)
+- `concept_accuracy` (15%)
+- `completeness` (15%)
+- `educational_value` (15%)
+- `pedagogy` (10%)
+- `clarity` (10%)
+- `flow` (5%)
+- `examples_and_analogies` (5%)
+- `learning_objectives` (5%)
