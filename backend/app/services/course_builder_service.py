@@ -10,7 +10,13 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import AsyncSessionLocal, engine
-from app.models.course_models import Document as DocModel, Course as CourseModel, Chapter as ChapterModel, Lesson as LessonModel
+from app.models.course_models import (
+    Document as DocModel,
+    Course as CourseModel,
+    Chapter as ChapterModel,
+    Lesson as LessonModel,
+    SourceDocument as SourceDocumentModel,
+)
 
 logger = logging.getLogger(__name__)
 
