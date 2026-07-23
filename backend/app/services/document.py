@@ -24,7 +24,7 @@ class DocumentService:
     """Service for managing document operations."""
     
     UPLOADS_DIR = Path(tempfile.gettempdir()) / "structura_uploads"
-    ALLOWED_EXTENSIONS = {".pdf"}
+    ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".pptx", ".ppt", ".txt", ".md"}
     MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
     
     def __init__(self):
@@ -48,7 +48,8 @@ class DocumentService:
         # Check file extension
         file_ext = Path(filename).suffix.lower()
         if file_ext not in self.ALLOWED_EXTENSIONS:
-            return f"Invalid file type. Only PDF files are allowed. Got: {file_ext}"
+            allowed_str = ", ".join(sorted(self.ALLOWED_EXTENSIONS))
+            return f"Invalid file type. Allowed formats: {allowed_str}. Got: {file_ext}"
         
         # Check file size
         if file_size > self.MAX_FILE_SIZE:

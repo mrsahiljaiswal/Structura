@@ -13,9 +13,12 @@ import { useCourses } from "@/hooks/use-courses";
 import { coursePersistence } from "@/lib/services/course-service";
 import { BarChart3, Clock, Trophy, Award, Calendar, Sparkles } from "lucide-react";
 
+import { useUserProgress } from "@/hooks/use-user-progress";
+
 export default function AnalyticsPage() {
   const { courses } = useCourses();
-  const completedLessonsCount = coursePersistence.getCompletedLessons().length;
+  const { progress } = useUserProgress();
+  const completedLessonsCount = (progress?.completed_lessons || []).length;
   const totalCourses = courses.length;
 
   // Calculate total study time dynamically based on word counts of completed lessons
@@ -32,7 +35,10 @@ export default function AnalyticsPage() {
     });
   });
   const totalStudyTimeHr = parseFloat((totalStudyTimeSec / 3600).toFixed(1));
-  const streak = coursePersistence.getStreak();
+  const streak = {
+    count: progress.streak_count || 0,
+    lastDate: progress.streak_last_date || null,
+  };
 
   const breadcrumbs = [
     { label: "Analytics", href: "/dashboard/analytics" },

@@ -30,6 +30,29 @@ interface UserProgress {
   streak_count?: number;
   streak_last_date?: string | null;
   activities?: ActivityLogItem[];
+  chat_history?: { role: string; content: string }[];
+}
+
+function getLocalDateString(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeDateStr(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  const trimmed = dateStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  try {
+    const parsed = new Date(trimmed);
+    if (isNaN(parsed.getTime())) return null;
+    return getLocalDateString(parsed);
+  } catch {
+    return null;
+  }
 }
 
 class CoursePersistenceService {
@@ -44,6 +67,7 @@ class CoursePersistenceService {
     streak_count: 0,
     streak_last_date: null,
     activities: [],
+    chat_history: [],
   };
   private isLoaded = false;
   private loadingPromise: Promise<void> | null = null;
@@ -71,6 +95,7 @@ class CoursePersistenceService {
           lesson_notes: res.data.lesson_notes || {},
           streak_count: res.data.streak_count || 0,
           streak_last_date: res.data.streak_last_date || null,
+          chat_history: res.data.chat_history || [],
         };
         this.isLoaded = true;
         await this.checkStreakExpiration();
@@ -101,6 +126,7 @@ class CoursePersistenceService {
         lesson_notes: this.progress.lesson_notes,
         streak_count: this.progress.streak_count || 0,
         streak_last_date: this.progress.streak_last_date || null,
+        chat_history: this.progress.chat_history || [],
       };
       await api.post("/api/v1/user/progress", payload);
     } catch (err) {
@@ -208,31 +234,34 @@ class CoursePersistenceService {
     };
   }
 
-  // Check if user missed a day without prematurely stamping today's date on load
+  // Check if user missed a day without prematurely resetting if study happened yesterday or today
   async checkStreakExpiration() {
     if (!this.progress.streak_last_date) return;
-    const today = new Date().toDateString();
-    if (this.progress.streak_last_date === today) return;
+    const lastDateNorm = normalizeDateStr(this.progress.streak_last_date);
+    if (!lastDateNorm) return;
+
+    const todayNorm = getLocalDateString(new Date());
+    if (lastDateNorm === todayNorm) return;
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toDateString();
+    const yesterdayNorm = getLocalDateString(yesterday);
+
+    if (lastDateNorm === yesterdayNorm) return;
 
     // If last study date was older than yesterday, reset streak count to 0
-    if (this.progress.streak_last_date !== yesterdayStr) {
-      this.progress.streak_count = 0;
-      await this.saveToServer();
-      window.dispatchEvent(new Event("storage"));
-    }
+    this.progress.streak_count = 0;
+    await this.saveToServer();
+    window.dispatchEvent(new Event("storage"));
   }
 
   // Record active study activity for today to increment/maintain streak
   async updateStreak() {
-    const today = new Date().toDateString();
-    const currentStreak = this.getStreak();
+    const todayNorm = getLocalDateString(new Date());
+    const lastDateNorm = normalizeDateStr(this.progress.streak_last_date);
 
     // Already recorded study activity for today
-    if (currentStreak.lastDate === today) {
+    if (lastDateNorm === todayNorm) {
       await this.saveToServer();
       window.dispatchEvent(new Event("storage"));
       return;
@@ -240,15 +269,15 @@ class CoursePersistenceService {
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toDateString();
+    const yesterdayNorm = getLocalDateString(yesterday);
 
-    if (currentStreak.lastDate === yesterdayStr) {
+    if (lastDateNorm === yesterdayNorm) {
       this.progress.streak_count = (this.progress.streak_count || 0) + 1;
     } else {
       this.progress.streak_count = 1;
     }
 
-    this.progress.streak_last_date = today;
+    this.progress.streak_last_date = todayNorm;
     await this.saveToServer();
     window.dispatchEvent(new Event("storage"));
   }
@@ -318,6 +347,17 @@ class CoursePersistenceService {
     if (scores.length === 0) return 0;
     const sum = scores.reduce((a, b) => a + b, 0);
     return Math.round(sum / scores.length);
+  }
+
+  // Chat History Management
+  getChatHistory(): { role: string; content: string }[] {
+    return this.progress.chat_history || [];
+  }
+
+  async clearChatHistory() {
+    this.progress.chat_history = [];
+    await this.saveToServer();
+    window.dispatchEvent(new Event("storage"));
   }
 }
 

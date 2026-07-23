@@ -16,7 +16,7 @@ import { PipelineTimeline } from "./pipeline-timeline";
 import { coursePersistence } from "@/lib/services/course-service";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
-const ALLOWED_TYPES = ["application/pdf"];
+const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".doc", ".pptx", ".ppt", ".txt", ".md"];
 
 interface UploadProcessingResult {
   filename: string;
@@ -54,8 +54,9 @@ export function UploadDropZone() {
   }, []);
 
   const validateFile = useCallback((file: File): string | null => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return "Only PDF files are allowed";
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      return "File type not supported. Please upload a PDF, Word (.docx, .doc), PowerPoint (.pptx, .ppt), or Text (.txt, .md) file.";
     }
     if (file.size > MAX_FILE_SIZE) {
       return `File size must be less than 50 MB (your file: ${(file.size / 1024 / 1024).toFixed(2)} MB)`;
@@ -109,7 +110,7 @@ export function UploadDropZone() {
     if (!uploadState.file) return;
 
     setUploadState((prev) => ({ ...prev, status: "uploading" }));
-    coursePersistence.addActivity("upload", "Processing PDF Upload", uploadState.file.name);
+    coursePersistence.addActivity("upload", "Processing Document Upload", uploadState.file.name);
 
     try {
       const formData = new FormData();
@@ -195,7 +196,7 @@ export function UploadDropZone() {
         processingResult: null,
       });
     }
-  }, [uploadState.file, router]);
+  }, [uploadState.file, router, user]);
 
   const handleReset = useCallback(() => {
     setUploadState({
@@ -227,7 +228,7 @@ export function UploadDropZone() {
           >
             <input
               type="file"
-              accept=".pdf"
+              accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md"
               onChange={handleFileInputChange}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0 z-10"
             />
@@ -235,10 +236,10 @@ export function UploadDropZone() {
             <div className="rounded-2xl bg-accent p-4 border border-indigo-500/20 mb-4 group-hover:scale-110 transition-transform">
               <Upload className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="text-base font-bold text-foreground">Drop your PDF document here</h3>
+            <h3 className="text-base font-bold text-foreground">Drop your document here</h3>
             <p className="text-xs text-muted-foreground mt-1">or click to browse local files</p>
             <p className="text-[10px] text-muted-foreground mt-4">
-              PDF files only • Maximum size 50 MB
+              PDF, Word (.docx), PowerPoint (.pptx), Text files • Maximum size 50 MB
             </p>
           </div>
         )}

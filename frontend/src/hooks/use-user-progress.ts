@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
+import { useEffect } from "react";
 import api from "@/lib/axios";
 import { coursePersistence } from "@/lib/services/course-service";
 
@@ -21,89 +22,66 @@ export function useUserProgress() {
   const { user } = useUser();
   const userId = user?.id || "anonymous";
 
-  const { data: progress, isLoading } = useQuery<UserProgressData>({
+  useEffect(() => {
+    const handleStorage = () => {
+      queryClient.invalidateQueries({ queryKey: ["userProgress", userId] });
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [queryClient, userId]);
+
+  const { data, isLoading } = useQuery<UserProgressData>({
     queryKey: ["userProgress", userId],
     queryFn: async () => {
       await coursePersistence.loadFromServer();
       const res = await api.get("/api/v1/user/progress");
       return res.data;
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 5,
   });
 
-  const updateProgressMutation = useMutation({
-    mutationFn: async (newProgress: Partial<UserProgressData>) => {
-      const current = progress || {
-        pinned_courses: [],
-        favorite_courses: [],
-        completed_lessons: [],
-        study_time_total: 0,
-        study_time_by_day: {},
-        quiz_scores: {},
-        lesson_notes: {},
-        chat_history: [],
-      };
-      const payload = { ...current, ...newProgress };
-      const res = await api.post("/api/v1/user/progress", payload);
-      return res.data;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["userProgress"], data);
-      window.dispatchEvent(new Event("storage"));
-    },
-  });
+  const progressData: UserProgressData = data || {
+    pinned_courses: [],
+    favorite_courses: [],
+    completed_lessons: [],
+    study_time_total: 0,
+    study_time_by_day: {},
+    quiz_scores: {},
+    lesson_notes: {},
+    streak_count: 0,
+    streak_last_date: null,
+    chat_history: [],
+  };
 
   const toggleLessonComplete = async (lessonId: string) => {
-    const currentCompleted = progress?.completed_lessons || [];
-    const exists = currentCompleted.includes(lessonId);
-    const updated = exists
-      ? currentCompleted.filter((id) => id !== lessonId)
-      : [...currentCompleted, lessonId];
-
-    await updateProgressMutation.mutateAsync({ completed_lessons: updated });
     await coursePersistence.toggleLessonComplete(lessonId);
+    queryClient.invalidateQueries({ queryKey: ["userProgress", userId] });
   };
 
   const addStudyTime = async (seconds: number) => {
-    const newTotal = (progress?.study_time_total || 0) + seconds;
-    const day = new Date().toLocaleDateString("en-US", { weekday: "short" });
-    const byDay = { ...(progress?.study_time_by_day || {}) };
-    byDay[day] = (byDay[day] || 0) + seconds;
-
-    await updateProgressMutation.mutateAsync({
-      study_time_total: newTotal,
-      study_time_by_day: byDay,
-    });
     await coursePersistence.addStudyTime(seconds);
+    queryClient.invalidateQueries({ queryKey: ["userProgress", userId] });
   };
 
-  const quizScores = progress?.quiz_scores || {};
-  const scoreValues = Object.values(quizScores);
-  const avgQuizScore = scoreValues.length > 0 ? Math.round(scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length) : 0;
-
   const saveQuizScore = async (lessonId: string, scorePercent: number) => {
-    const updatedScores = { ...quizScores, [lessonId]: scorePercent };
-    await updateProgressMutation.mutateAsync({ quiz_scores: updatedScores });
     await coursePersistence.saveQuizScore(lessonId, scorePercent);
+    queryClient.invalidateQueries({ queryKey: ["userProgress", userId] });
   };
 
   const clearChatHistory = async () => {
-    await updateProgressMutation.mutateAsync({ chat_history: [] });
+    await coursePersistence.clearChatHistory();
+    queryClient.invalidateQueries({ queryKey: ["userProgress", userId] });
   };
 
+  const quizScores = progressData.quiz_scores || {};
+  const scoreValues = Object.values(quizScores);
+  const avgQuizScore =
+    scoreValues.length > 0
+      ? Math.round(scoreValues.reduce((a, b) => a + b, 0) / scoreValues.length)
+      : 0;
+
   return {
-    progress: progress || {
-      pinned_courses: [],
-      favorite_courses: [],
-      completed_lessons: [],
-      study_time_total: 0,
-      study_time_by_day: {},
-      quiz_scores: {},
-      lesson_notes: {},
-      streak_count: 0,
-      streak_last_date: null,
-      chat_history: [],
-    },
+    progress: progressData,
     avgQuizScore,
     isLoading,
     toggleLessonComplete,
