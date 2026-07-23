@@ -14,6 +14,15 @@ class BoundingBox:
 
 
 @dataclass
+class SourceProvenance:
+    document_id: str
+    filename: str
+    document_type: str  # pdf | docx | pptx | txt
+    page_number: int
+    section_title: str | None = None
+
+
+@dataclass
 class TextBlock:
     text: str
     font: str | None
@@ -22,6 +31,7 @@ class TextBlock:
     italic: bool
     bbox: BoundingBox
     block_type: str = "text"  # text | header | footer | list_item
+    provenance: SourceProvenance | None = None
 
 
 @dataclass
@@ -50,6 +60,7 @@ class ExtractedPage:
     tables: list[TableObject] = field(default_factory=list)
     headers: list[str] = field(default_factory=list)
     footers: list[str] = field(default_factory=list)
+    provenance: SourceProvenance | None = None
 
 
 @dataclass

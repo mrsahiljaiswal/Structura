@@ -34,6 +34,22 @@ class Course(Base):
 
     document = relationship("Document", back_populates="courses")
     chapters = relationship("Chapter", back_populates="course", cascade="all, delete-orphan")
+    source_documents = relationship("SourceDocument", back_populates="course", cascade="all, delete-orphan")
+
+
+class SourceDocument(Base):
+    __tablename__ = "source_documents"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    course_id = Column(PG_UUID(as_uuid=True), ForeignKey("courses.id"), nullable=False)
+    filename = Column(String(512), nullable=False)
+    stored_filename = Column(String(512), nullable=False)
+    file_type = Column(String(64), nullable=False)
+    size_bytes = Column(Integer, nullable=False, default=0)
+    page_count = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    course = relationship("Course", back_populates="source_documents")
 
 
 class Chapter(Base):

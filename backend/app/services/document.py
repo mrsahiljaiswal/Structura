@@ -162,6 +162,93 @@ class DocumentService:
             status=status,
             course_id=course_id,
         )
+
+    def save_batch_upload(
+        self,
+        files: list[tuple[str, bytes]],
+        course_title: str | None = None,
+        user_id: str = None,
+    ) -> DocumentUploadResponse:
+        """Save a batch of uploaded files and generate a synthesized course.
+        
+        Args:
+            files: List of (filename, file_content) tuples
+            course_title: Optional custom course title
+            user_id: Optional Clerk user ID
+            
+        Returns:
+            DocumentUploadResponse
+        """
+        if not files:
+            raise ValueError("No files provided for batch upload.")
+
+        saved_file_paths: list[str] = []
+        source_docs_info: list[dict] = []
+        primary_metadata = None
+
+        for filename, content in files:
+            error = self.validate_file(filename, len(content))
+            if error:
+                raise ValueError(f"File '{filename}' validation failed: {error}")
+
+            file_id = uuid.uuid4()
+            file_ext = Path(filename).suffix
+            stored_filename = f"{file_id}{file_ext}"
+            file_path = self.UPLOADS_DIR / stored_filename
+
+            with open(file_path, "wb") as f:
+                f.write(content)
+
+            meta = self.repository.create(
+                filename=filename,
+                stored_filename=stored_filename,
+                size_bytes=len(content),
+            )
+            if primary_metadata is None:
+                primary_metadata = meta
+
+            saved_file_paths.append(str(file_path))
+            source_docs_info.append({
+                "filename": filename,
+                "stored_filename": stored_filename,
+                "file_type": file_ext.lstrip(".").lower(),
+                "size_bytes": len(content),
+                "page_count": 0,
+            })
+
+        effective_title = course_title or (files[0][0] if len(files) == 1 else f"Synthesized Course ({len(files)} files)")
+
+        try:
+            ensure_tables()
+            from app.pipeline.orchestrator import StructuraPipeline
+            artifacts_dir = self.UPLOADS_DIR / f"{primary_metadata.document_id}_batch_artifacts"
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+            pipeline = StructuraPipeline(output_dir=str(artifacts_dir))
+            final_course = pipeline.run_multi_document(saved_file_paths, course_title=effective_title)
+
+            course_id = persist_course_sync(
+                primary_metadata.document_id,
+                primary_metadata.stored_filename,
+                final_course,
+                user_id=user_id,
+                source_documents=source_docs_info,
+            )
+            self.repository.update_status(primary_metadata.document_id, DocumentStatus.COURSE_GENERATED.value)
+            status = DocumentStatus.COURSE_GENERATED.value
+        except Exception as e:
+            logger.error(f"Batch pipeline execution failed: {e}", exc_info=True)
+            course_id = None
+            status = DocumentStatus.CHUNKED.value
+
+        return DocumentUploadResponse(
+            document_id=primary_metadata.document_id,
+            filename=effective_title,
+            page_count=len(saved_file_paths),
+            character_count=0,
+            status=status,
+            course_id=course_id,
+        )
     
     def get_document(self, document_id: str) -> Optional[DocumentMetadata]:
         """Retrieve a document by ID.

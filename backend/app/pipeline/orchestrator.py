@@ -55,34 +55,33 @@ from app.services.lesson_review.validator import EducationalReviewValidator
 from app.services.semantic_segmentation.exporter import SemanticSegmentationExporter
 from app.services.semantic_segmentation.service import SemanticSegmentationService
 from app.services.semantic_segmentation.validator import SemanticSegmentationValidator
+from app.services.cross_document_synthesis.service import CrossDocumentSynthesisService
+from app.pipeline.repair_loop import LessonRepairLoop
 
 
 class StructuraPipeline:
     """
-    End-to-end pipeline orchestrator. Runs all 10 modules in order, with
-    optional persistence of intermediate outputs and validation gates at
-    each stage.
-
-    Every module can be swapped out independently - all services are
-    injected at init time.
+    Unified orchestrator that wires together all 10 Structura modules.
+    Supports single-document pipeline and multi-document synthesis pipeline.
     """
 
     def __init__(
         self,
-        output_dir: str,
-        llm_client: LLMClient | None = None,
-        skip_validation: bool = False,
+        output_dir: str = "artifacts",
         save_intermediates: bool = True,
+        skip_validation: bool = False,
+        llm_client: LLMClient | None = None,
     ):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.llm = llm_client or LLMClient()
-        self.skip_validation = skip_validation
         self.save_intermediates = save_intermediates
+        self.skip_validation = skip_validation
+        self.llm = llm_client or LLMClient()
 
         # Initialize all service instances
         self.extraction = DocumentExtractionService()
         self.normalization = DocumentNormalizationService()
+        self.synthesis = CrossDocumentSynthesisService()
         self.understanding = DocumentUnderstandingService(llm_client=self.llm)
         self.structure = DocumentStructureService()
         self.knowledge = KnowledgeExtractionService(llm_client=self.llm)
@@ -243,4 +242,72 @@ class StructuraPipeline:
         print(f"  Reading time: {final_course.statistics.total_reading_time_minutes} minutes")
         print(f"  Avg quality: {final_course.statistics.average_quality_score:.1f}/100")
 
+        return final_course
+
+    def run_multi_document(self, file_paths: list[str], course_title: str) -> any:
+        """
+        Run the multi-document synthesis pipeline across multiple source files.
+        """
+        print(f"[Structura] Starting Multi-Document Synthesis Pipeline for {len(file_paths)} source files")
+        print(f"[Structura] Course Title: {course_title}")
+        print(f"[Structura] Output directory: {self.output_dir}")
+
+        # Module 1: Per-file Document Extraction
+        print("\n[Module 1] Multi-Document Extraction...")
+        extracted_docs = []
+        for path in file_paths:
+            ext_doc = self.extraction.extract(path)
+            extracted_docs.append(ext_doc)
+
+        # Module 2: Per-file Document Normalization
+        print("[Module 2] Document Normalization...")
+        normalized_docs = []
+        for ext_doc in extracted_docs:
+            norm_doc = self.normalization.normalize(ext_doc)
+            normalized_docs.append(norm_doc)
+
+        # Module 3: Cross-Document Synthesis & Deduplication
+        print("[Module 3] Cross-Document Synthesis & Deduplication...")
+        synthesized = self.synthesis.synthesize(normalized_docs, course_title=course_title)
+        normalized = synthesized.normalized_document
+
+        # Module 3.5: Document Understanding
+        print("[Module 3.5] Cross-Document Understanding...")
+        profile = self.understanding.understand(normalized)
+
+        # Module 4: Document Structure
+        print("[Module 4] Document Structure...")
+        structure = self.structure.build(normalized, title=course_title)
+
+        # Module 5: Knowledge Extraction
+        print("[Module 5] Knowledge Extraction...")
+        knowledge = self.knowledge.extract(structure)
+
+        # Module 6: Semantic Segmentation
+        print("[Module 6] Semantic Segmentation...")
+        learning_units = self.segmentation.segment(structure, knowledge)
+
+        # Module 7: Educational Planning
+        print("[Module 7] Educational Planning...")
+        plan = self.planner.plan(knowledge, learning_units, course_title=course_title)
+
+        # Module 8 & 9: Authoring & Review Repair Loop
+        print("[Module 8 & 9] Authoring & Review Repair Loop...")
+        lesson_titles_by_id = {l.lesson_id: l.title for m in plan.modules for c in m.chapters for l in c.lessons}
+        repair_loop = LessonRepairLoop(
+            authoring_service=self.authoring,
+            review_service=self.reviewer,
+            max_attempts=2,
+        )
+        reviewed_lessons = {}
+        for module in plan.modules:
+            for chapter in module.chapters:
+                for planned in chapter.lessons:
+                    prereq_titles = [lesson_titles_by_id[p] for p in planned.prerequisites if p in lesson_titles_by_id]
+                    reviewed = repair_loop.author_and_review(planned, learning_units, prereq_titles)
+                    reviewed_lessons[reviewed.lesson.lesson_id] = reviewed
+
+        # Module 10: Course Assembly
+        print("[Module 10] Course Assembly...")
+        final_course = self.assembly.assemble(plan, reviewed_lessons)
         return final_course

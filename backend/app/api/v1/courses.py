@@ -9,7 +9,39 @@ from app.db.session import get_db
 from app.models.course_models import Course as CourseModel, Chapter as ChapterModel, Lesson as LessonModel
 from app.schemas.course import CourseOut, ChapterOut, LessonOut
 
+from fastapi import Form, File, UploadFile
+from app.schemas.document import DocumentUploadResponse
+from app.services.document import get_document_service
+
 router = APIRouter()
+
+
+@router.post("/courses/create", response_model=DocumentUploadResponse)
+async def create_course(
+    files: list[UploadFile] = File(...),
+    title: str = Form(default=None),
+    x_user_id: str = Header(default="anonymous", alias="X-User-Id"),
+) -> DocumentUploadResponse:
+    """Create a new synthesized course from one or multiple uploaded documents."""
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one file must be provided")
+
+    file_tuples = []
+    for f in files:
+        if not f.filename:
+            continue
+        content = await f.read()
+        file_tuples.append((f.filename, content))
+
+    service = get_document_service()
+    response = service.save_batch_upload(
+        files=file_tuples,
+        course_title=title,
+        user_id=x_user_id,
+    )
+    if response.course_id is None:
+        raise HTTPException(status_code=500, detail="Course creation failed")
+    return response
 
 
 @router.get("/courses", response_model=List[CourseOut])

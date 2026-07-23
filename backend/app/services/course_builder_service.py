@@ -94,57 +94,62 @@ def _format_lesson_content(lesson) -> str:
     return "\n\n".join(parts)
 
 
-def persist_course_sync(document_id: UUID, stored_filename: str, course: Any, user_id: str = None):
-    """Persist course into the database using a synchronous SQLAlchemy session.
+def persist_course_sync(document_id: UUID, stored_filename: str, course: Any, user_id: str = None, source_documents: list[dict] = None):
+    """Persist course into database using a synchronous SQLAlchemy session.
 
     Supports both legacy dict format and FinalCourse Pydantic object.
-    This avoids calling `asyncio.run` from code that may already be running
-    inside an event loop (for example when running under Uvicorn). Uses the
-    sync DB URL so behavior is consistent with `ensure_tables`.
+    Also persists individual source document records for multi-document courses.
     """
     logger.info(f"Starting course persistence for document {document_id}")
     try:
-        logger.info(f"Connecting to database: {settings.SQLALCHEMY_DATABASE_URI_SYNC}")
         sync_engine = create_engine(settings.SQLALCHEMY_DATABASE_URI_SYNC)
-        SessionLocal = sessionmaker(bind=sync_engine)
+        SyncSession = sessionmaker(bind=sync_engine)
 
-        # Map details depending on input type
-        if isinstance(course, dict):
-            title = course.get("title", "Generated Course")
-            description = course.get("description")
-            difficulty = course.get("difficulty")
-            estimated_time = course.get("estimated_time")
-        else:
-            # FinalCourse object
-            title = getattr(course, "course_title", "Generated Course")
-            description = getattr(course, "description", "")
-            difficulty = "Intermediate"
-            stats = getattr(course, "statistics", None)
-            estimated_time = f"{stats.total_reading_time_minutes} min read" if stats else None
-
-        with SessionLocal() as session:
-            logger.info(f"Checking if document {document_id} exists...")
-            # Ensure document row exists (or create minimal)
-            doc = session.query(DocModel).filter(DocModel.id == document_id).first()
+        with SyncSession() as session:
+            stmt = select(DocModel).where(DocModel.id == document_id)
+            res = session.execute(stmt)
+            doc = res.scalars().first()
             if doc is None:
-                logger.info(f"Document not found, creating new document record...")
-                doc = DocModel(id=document_id, filename=stored_filename, stored_filename=stored_filename, size_bytes=0, status="processed")
+                logger.info(f"Creating Document row for ID: {document_id}")
+                doc = DocModel(
+                    id=document_id,
+                    filename=stored_filename,
+                    stored_filename=stored_filename,
+                    size_bytes=0,
+                    status="processed",
+                )
                 session.add(doc)
                 session.flush()
-            else:
-                logger.info(f"Document found: {doc.filename}")
 
-            logger.info(f"Creating course: {title}")
+            is_final_course = isinstance(course, FinalCourse)
+            title = getattr(course, "course_title", None) or (course.title if is_final_course else course.get("title", "Generated Course"))
+            description = getattr(course, "description", None) or (course.description if is_final_course else course.get("description"))
+            difficulty = getattr(course, "difficulty", None) or (course.difficulty if is_final_course else course.get("difficulty", "Intermediate"))
+
+            logger.info(f"Creating Course row: '{title}' (user_id={user_id})")
             course_row = CourseModel(
                 document_id=document_id,
                 user_id=user_id,
-                title=title, 
-                description=description, 
+                title=title,
+                description=description,
                 difficulty=difficulty,
-                estimated_time=estimated_time
             )
             session.add(course_row)
             session.flush()
+
+            if source_documents:
+                for s_doc in source_documents:
+                    s_row = SourceDocumentModel(
+                        course_id=course_row.id,
+                        filename=s_doc.get("filename", "document"),
+                        stored_filename=s_doc.get("stored_filename", "document"),
+                        file_type=s_doc.get("file_type", "pdf"),
+                        size_bytes=s_doc.get("size_bytes", 0),
+                        page_count=s_doc.get("page_count", 0),
+                    )
+                    session.add(s_row)
+                session.flush()
+
             logger.info(f"Course created with ID: {course_row.id}")
 
             if isinstance(course, dict):
@@ -215,8 +220,7 @@ def persist_course_sync(document_id: UUID, stored_filename: str, course: Any, us
 
 
 def ensure_tables():
-    """Create tables synchronously if they don't exist yet and add missing columns.
-    """
+    """Create database tables synchronously if they do not exist yet."""
     logger.info("Ensuring database tables exist...")
     try:
         logger.info(f"Using database: {settings.SQLALCHEMY_DATABASE_URI_SYNC}")
