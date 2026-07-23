@@ -294,11 +294,7 @@ class StructuraPipeline:
         # Module 8 & 9: Authoring & Review Repair Loop
         print("[Module 8 & 9] Authoring & Review Repair Loop...")
         lesson_titles_by_id = {l.lesson_id: l.title for m in plan.modules for c in m.chapters for l in c.lessons}
-        repair_loop = LessonRepairLoop(
-            authoring_service=self.authoring,
-            review_service=self.reviewer,
-            max_attempts=2,
-        )
+        repair_loop = LessonRepairLoop(self.authoring, self.reviewer)
         reviewed_lessons = {}
         for module in plan.modules:
             for chapter in module.chapters:
