@@ -121,10 +121,14 @@ def persist_course_sync(document_id: UUID, stored_filename: str, course: Any, us
                 session.add(doc)
                 session.flush()
 
-            is_final_course = isinstance(course, FinalCourse)
-            title = getattr(course, "course_title", None) or (course.title if is_final_course else course.get("title", "Generated Course"))
-            description = getattr(course, "description", None) or (course.description if is_final_course else course.get("description"))
-            difficulty = getattr(course, "difficulty", None) or (course.difficulty if is_final_course else course.get("difficulty", "Intermediate"))
+            if isinstance(course, dict):
+                title = course.get("title") or course.get("course_title", "Generated Course")
+                description = course.get("description", "")
+                difficulty = course.get("difficulty", "Intermediate")
+            else:
+                title = getattr(course, "course_title", None) or getattr(course, "title", "Generated Course")
+                description = getattr(course, "description", "")
+                difficulty = getattr(course, "difficulty", "Intermediate")
 
             logger.info(f"Creating Course row: '{title}' (user_id={user_id})")
             course_row = CourseModel(
