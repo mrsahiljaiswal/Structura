@@ -57,6 +57,9 @@ class KnowledgeExtractionService:
             for raw in raw_concepts:
                 self._merge_concept(concepts_by_slug, raw, unit)
 
+        if not concepts_by_slug:
+            raise KnowledgeExtractionError("No concepts extracted from document content.")
+
         # Fallback for documents with very few or unsectioned text blocks
         if len(concepts_by_slug) < 3:
             all_text_parts = [f"Section [{u.title or u.node_id}]: {self._unit_text(u).strip()[:500]}" for u in units]
@@ -87,7 +90,11 @@ class KnowledgeExtractionService:
                 walk(c)
 
         walk(node)
-        return sections if sections else chapters
+        if sections:
+            return sections
+        if chapters:
+            return chapters
+        return [node]
 
     @staticmethod
     def _unit_text(node: StructureNode) -> str:
