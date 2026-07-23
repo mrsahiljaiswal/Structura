@@ -1,5 +1,6 @@
 """Document upload API endpoints."""
 
+from typing import List, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, Header, status
 
 from app.schemas.document import DocumentUploadResponse
@@ -10,70 +11,70 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 @router.post("/upload", response_model=DocumentUploadResponse)
 async def upload_document(
-    file: UploadFile = File(...),
-    x_user_id: str = Header(default="anonymous", alias="X-User-Id"),
+    file: Optional[UploadFile] = File(default=None),
+    files: Optional[List[UploadFile]] = File(default=None),
+    x_user_id: Optional[str] = Header(default="anonymous", alias="X-User-Id"),
 ) -> DocumentUploadResponse:
-    """Upload a PDF document for course generation.
-    
-    Args:
-        file: The PDF file to upload
-        
-    Returns:
-        DocumentUploadResponse with document metadata and ID
-        
-    Raises:
-        HTTPException: If file validation fails or upload fails
+    """Upload one or multiple documents for course generation.
+
+    Supports both 'file' and 'files' multipart form-data keys to avoid 422 errors.
     """
-    if not file.filename:
+    uploaded_files: List[UploadFile] = []
+    if file:
+        uploaded_files.append(file)
+    if files:
+        uploaded_files.extend(files)
+
+    if not uploaded_files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must have a filename",
+            detail="No files provided in upload request.",
         )
-    
+
+    file_tuples = []
+    for f in uploaded_files:
+        if not f.filename:
+            continue
+        content = await f.read()
+        file_tuples.append((f.filename, content))
+
+    if not file_tuples:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded files must have valid filenames.",
+        )
+
     try:
-        # Read file content
-        content = await file.read()
-        
-        # Use document service to validate and save
         service = get_document_service()
-        response = service.save_upload(
-            filename=file.filename,
-            file_content=content,
-            user_id=x_user_id,
+        response = service.save_batch_upload(
+            files=file_tuples,
+            user_id=x_user_id or "anonymous",
         )
-        
+
         if response.course_id is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Course generation pipeline execution failed. Check server logs.",
             )
-            
+
         return response
-        
+
     except ValueError as e:
-        # File validation error
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
-    except IOError as e:
-        # File system error
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save file: {str(e)}",
-        )
     except Exception as e:
-        # Unexpected error
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during upload",
+            detail=f"Upload failed: {str(e)}",
         )
 
 
 @router.post("/upload-batch", response_model=DocumentUploadResponse)
 async def upload_document_batch(
-    files: list[UploadFile] = File(...),
-    x_user_id: str = Header(default="anonymous", alias="X-User-Id"),
+    files: List[UploadFile] = File(...),
+    x_user_id: Optional[str] = Header(default="anonymous", alias="X-User-Id"),
 ) -> DocumentUploadResponse:
     """Upload multiple documents (PDF, DOCX, PPTX, TXT) for multi-document course synthesis."""
     if not files:
@@ -99,7 +100,7 @@ async def upload_document_batch(
         service = get_document_service()
         response = service.save_batch_upload(
             files=file_tuples,
-            user_id=x_user_id,
+            user_id=x_user_id or "anonymous",
         )
         if response.course_id is None:
             raise HTTPException(
