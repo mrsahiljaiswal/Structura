@@ -66,3 +66,23 @@ def test_exporter_writes_json_file(sample_pdf, tmp_path):
     written_path = DocumentExtractionExporter().export(doc, str(out_dir))
     assert (out_dir / "document.extracted.json").exists()
     assert written_path.endswith("document.extracted.json")
+
+
+def test_extract_txt_file(tmp_path):
+    txt_path = tmp_path / "test.txt"
+    txt_path.write_text("# Chapter 1\nThis is a text file content for learning structura.", encoding="utf-8")
+    service = DocumentExtractionService()
+    doc = service.extract(str(txt_path))
+    assert doc.page_count >= 1
+    all_text = " ".join(b.text for b in doc.pages[0].blocks)
+    assert "Chapter 1" in all_text
+
+
+def test_fallback_extraction_on_nonstandard_file(tmp_path):
+    doc_path = tmp_path / "corrupted.doc"
+    doc_path.write_text("Hello Structura Fallback Extraction Content line 1\nLine 2 content details", encoding="utf-8")
+    service = DocumentExtractionService()
+    doc = service.extract(str(doc_path))
+    assert doc.page_count >= 1
+    all_text = " ".join(b.text for b in doc.pages[0].blocks)
+    assert "Structura Fallback" in all_text

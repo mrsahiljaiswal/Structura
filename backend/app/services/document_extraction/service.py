@@ -14,15 +14,59 @@ from .schema import (
 )
 
 
+def _extract_zip_xml_text(file_path: Path) -> list[str]:
+    import zipfile
+    import xml.etree.ElementTree as ET
+    lines: list[str] = []
+    try:
+        if not zipfile.is_zipfile(file_path):
+            return lines
+        with zipfile.ZipFile(file_path, "r") as z:
+            xml_files = [f for f in z.namelist() if f.endswith(".xml")]
+            xml_files.sort(key=lambda x: (0 if "document.xml" in x else (1 if "slide" in x else 2), x))
+            for f_name in xml_files:
+                try:
+                    xml_content = z.read(f_name)
+                    tree = ET.fromstring(xml_content)
+                    for node in tree.iter():
+                        if node.tag.endswith("t") and node.text:
+                            txt = node.text.strip()
+                            if txt and len(txt) > 1:
+                                lines.append(txt)
+                except Exception:
+                    continue
+    except Exception:
+        pass
+    return lines
+
+
+def _extract_printable_strings(file_path: Path) -> list[str]:
+    import re
+    lines: list[str] = []
+    try:
+        with open(file_path, "rb") as f:
+            raw_bytes = f.read()
+
+        try:
+            decoded = raw_bytes.decode("utf-8", errors="ignore")
+        except Exception:
+            decoded = raw_bytes.decode("latin-1", errors="ignore")
+
+        matches = re.findall(r"[\x20-\x7E\t\r\n]{4,}", decoded)
+        for match in matches:
+            cleaned = match.strip()
+            if len(cleaned) > 5 and not cleaned.startswith("<?xml") and not cleaned.startswith("PK") and not cleaned.startswith("<w:") and not cleaned.startswith("<a:"):
+                lines.append(cleaned)
+    except Exception:
+        pass
+    return lines
+
+
 class DocumentExtractionService:
     """
     Module 1: Document Extraction Engine.
 
-    Converts a PDF into raw structured information: text with font/style/
-    position metadata, images, tables, and document metadata.
-
-    Explicitly NOT this module's job: cleanup (Module 2), classification
-    (Module 3), or hierarchy (Module 4). This module only extracts.
+    Converts a PDF, DOCX, PPTX, or TXT document into raw structured information.
     """
 
     def extract(self, pdf_path: str) -> ExtractedDocument:
@@ -51,7 +95,7 @@ class DocumentExtractionService:
         try:
             doc = fitz.open(str(path))
         except Exception as e:
-            raise ExtractionError(f"Could not open PDF: {e}") from e
+            return self._extract_fallback(path, f"PyMuPDF failed: {e}")
 
         pages: list[ExtractedPage] = []
         try:
@@ -72,144 +116,174 @@ class DocumentExtractionService:
     def _extract_docx(self, docx_path: Path) -> ExtractedDocument:
         try:
             import docx
-        except ImportError as e:
-            raise ExtractionError(
-                "python-docx is required for Word extraction. Install with `pip install python-docx`."
-            ) from e
-
-        try:
             doc = docx.Document(str(docx_path))
-        except Exception as e:
-            raise ExtractionError(f"Could not open Word document: {e}") from e
 
-        pages: list[ExtractedPage] = []
-        current_blocks: list[TextBlock] = []
-        page_number = 1
-        word_count = 0
+            pages: list[ExtractedPage] = []
+            current_blocks: list[TextBlock] = []
+            page_number = 1
+            word_count = 0
 
-        for para in doc.paragraphs:
-            text = para.text.strip()
-            if not text:
-                continue
+            for para in doc.paragraphs:
+                text = para.text.strip()
+                if not text:
+                    continue
 
-            style_name = para.style.name.lower() if para.style else ""
-            bold = any(run.bold for run in para.runs if run.bold is not None)
-            italic = any(run.italic for run in para.runs if run.italic is not None)
+                style_name = para.style.name.lower() if para.style else ""
+                bold = any(run.bold for run in para.runs if run.bold is not None)
+                italic = any(run.italic for run in para.runs if run.italic is not None)
 
-            font_size = 12.0
-            if "heading 1" in style_name or "title" in style_name:
-                font_size = 20.0
-                bold = True
-            elif "heading 2" in style_name:
-                font_size = 16.0
-                bold = True
-            elif "heading 3" in style_name:
-                font_size = 14.0
-                bold = True
+                font_size = 12.0
+                if "heading 1" in style_name or "title" in style_name:
+                    font_size = 20.0
+                    bold = True
+                elif "heading 2" in style_name:
+                    font_size = 16.0
+                    bold = True
+                elif "heading 3" in style_name:
+                    font_size = 14.0
+                    bold = True
 
-            current_blocks.append(TextBlock(
-                text=text,
-                font=para.style.name if para.style else "Normal",
-                font_size=font_size,
-                bold=bold,
-                italic=italic,
-                bbox=BoundingBox(0, 0, 100, 100),
-            ))
-
-            word_count += len(text.split())
-            if word_count >= 400:
-                pages.append(ExtractedPage(page_number=page_number, blocks=current_blocks, images=[], tables=[]))
-                page_number += 1
-                current_blocks = []
-                word_count = 0
-
-        for table in doc.tables:
-            table_text_lines = []
-            for row in table.rows:
-                row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
-                if row_text:
-                    table_text_lines.append(" | ".join(row_text))
-            if table_text_lines:
                 current_blocks.append(TextBlock(
-                    text="\n".join(table_text_lines),
-                    font="TableText",
-                    font_size=11.0,
-                    bold=False,
-                    italic=False,
+                    text=text,
+                    font=para.style.name if para.style else "Normal",
+                    font_size=font_size,
+                    bold=bold,
+                    italic=italic,
                     bbox=BoundingBox(0, 0, 100, 100),
                 ))
 
-        if current_blocks or not pages:
-            pages.append(ExtractedPage(page_number=page_number, blocks=current_blocks, images=[], tables=[]))
+                word_count += len(text.split())
+                if word_count >= 400:
+                    pages.append(ExtractedPage(page_number=page_number, width=612.0, height=792.0, blocks=current_blocks, images=[], tables=[]))
+                    page_number += 1
+                    current_blocks = []
+                    word_count = 0
 
-        return ExtractedDocument(
-            source_path=str(docx_path),
-            page_count=len(pages),
-            metadata={"title": docx_path.stem},
-            pages=pages,
-        )
+            for table in doc.tables:
+                table_text_lines = []
+                for row in table.rows:
+                    row_text = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                    if row_text:
+                        table_text_lines.append(" | ".join(row_text))
+                if table_text_lines:
+                    current_blocks.append(TextBlock(
+                        text="\n".join(table_text_lines),
+                        font="TableText",
+                        font_size=11.0,
+                        bold=False,
+                        italic=False,
+                        bbox=BoundingBox(0, 0, 100, 100),
+                    ))
+
+            if current_blocks or not pages:
+                pages.append(ExtractedPage(page_number=page_number, width=612.0, height=792.0, blocks=current_blocks, images=[], tables=[]))
+
+            return ExtractedDocument(
+                source_path=str(docx_path),
+                page_count=len(pages),
+                metadata={"title": docx_path.stem},
+                pages=pages,
+            )
+        except Exception as e:
+            return self._extract_fallback(docx_path, f"python-docx error: {e}")
 
     def _extract_pptx(self, pptx_path: Path) -> ExtractedDocument:
         try:
             import pptx
-        except ImportError as e:
-            raise ExtractionError(
-                "python-pptx is required for PowerPoint extraction. Install with `pip install python-pptx`."
-            ) from e
-
-        try:
             prs = pptx.Presentation(str(pptx_path))
+            pages: list[ExtractedPage] = []
+
+            for slide_index, slide in enumerate(prs.slides):
+                blocks: list[TextBlock] = []
+                for shape in slide.shapes:
+                    if not shape.has_text_frame:
+                        continue
+                    for paragraph in shape.text_frame.paragraphs:
+                        text = paragraph.text.strip()
+                        if not text:
+                            continue
+
+                        bold = any(run.font.bold for run in paragraph.runs if run.font and run.font.bold is not None)
+                        italic = any(run.font.italic for run in paragraph.runs if run.font and run.font.italic is not None)
+                        font_size = 14.0
+                        if paragraph.runs and paragraph.runs[0].font and paragraph.runs[0].font.size:
+                            try:
+                                font_size = float(paragraph.runs[0].font.size.pt)
+                            except Exception:
+                                font_size = 14.0
+
+                        if shape == slide.shapes.title:
+                            font_size = 22.0
+                            bold = True
+
+                        blocks.append(TextBlock(
+                            text=text,
+                            font="SlideText",
+                            font_size=font_size,
+                            bold=bold,
+                            italic=italic,
+                            bbox=BoundingBox(0, 0, 100, 100),
+                        ))
+
+                pages.append(ExtractedPage(
+                    page_number=slide_index + 1,
+                    width=960.0,
+                    height=540.0,
+                    blocks=blocks,
+                    images=[],
+                    tables=[],
+                ))
+
+            if not pages:
+                pages.append(ExtractedPage(page_number=1, width=960.0, height=540.0, blocks=[], images=[], tables=[]))
+
+            return ExtractedDocument(
+                source_path=str(pptx_path),
+                page_count=len(pages),
+                metadata={"title": pptx_path.stem},
+                pages=pages,
+            )
         except Exception as e:
-            raise ExtractionError(f"Could not open PowerPoint presentation: {e}") from e
+            return self._extract_fallback(pptx_path, f"python-pptx error: {e}")
+
+    def _extract_fallback(self, file_path: Path, reason: str = "") -> ExtractedDocument:
+        lines = _extract_zip_xml_text(file_path)
+        if not lines:
+            lines = _extract_printable_strings(file_path)
+
+        if not lines:
+            raise ExtractionError(f"Could not extract readable text from document ({file_path.name}). {reason}")
 
         pages: list[ExtractedPage] = []
+        current_blocks: list[TextBlock] = []
+        page_number = 1
 
-        for slide_index, slide in enumerate(prs.slides):
-            blocks: list[TextBlock] = []
-            for shape in slide.shapes:
-                if not shape.has_text_frame:
-                    continue
-                for paragraph in shape.text_frame.paragraphs:
-                    text = paragraph.text.strip()
-                    if not text:
-                        continue
+        for line in lines:
+            trimmed = line.strip()
+            if not trimmed:
+                continue
 
-                    bold = any(run.font.bold for run in paragraph.runs if run.font and run.font.bold is not None)
-                    italic = any(run.font.italic for run in paragraph.runs if run.font and run.font.italic is not None)
-                    font_size = 14.0
-                    if paragraph.runs and paragraph.runs[0].font and paragraph.runs[0].font.size:
-                        try:
-                            font_size = float(paragraph.runs[0].font.size.pt)
-                        except Exception:
-                            font_size = 14.0
-
-                    if shape == slide.shapes.title:
-                        font_size = 22.0
-                        bold = True
-
-                    blocks.append(TextBlock(
-                        text=text,
-                        font="SlideText",
-                        font_size=font_size,
-                        bold=bold,
-                        italic=italic,
-                        bbox=BoundingBox(0, 0, 100, 100),
-                    ))
-
-            pages.append(ExtractedPage(
-                page_number=slide_index + 1,
-                blocks=blocks,
-                images=[],
-                tables=[],
+            current_blocks.append(TextBlock(
+                text=trimmed,
+                font="FallbackText",
+                font_size=12.0,
+                bold=False,
+                italic=False,
+                bbox=BoundingBox(0, 0, 100, 100),
             ))
 
-        if not pages:
-            pages.append(ExtractedPage(page_number=1, blocks=[], images=[], tables=[]))
+            if len(current_blocks) >= 40:
+                pages.append(ExtractedPage(page_number=page_number, width=612.0, height=792.0, blocks=current_blocks, images=[], tables=[]))
+                page_number += 1
+                current_blocks = []
+
+        if current_blocks or not pages:
+            pages.append(ExtractedPage(page_number=page_number, width=612.0, height=792.0, blocks=current_blocks, images=[], tables=[]))
 
         return ExtractedDocument(
-            source_path=str(pptx_path),
+            source_path=str(file_path),
             page_count=len(pages),
-            metadata={"title": pptx_path.stem},
+            metadata={"title": file_path.stem, "extraction_note": reason},
             pages=pages,
         )
 
@@ -244,12 +318,12 @@ class DocumentExtractionService:
             ))
 
             if len(current_blocks) >= 40:
-                pages.append(ExtractedPage(page_number=page_number, blocks=current_blocks, images=[], tables=[]))
+                pages.append(ExtractedPage(page_number=page_number, width=612.0, height=792.0, blocks=current_blocks, images=[], tables=[]))
                 page_number += 1
                 current_blocks = []
 
         if current_blocks or not pages:
-            pages.append(ExtractedPage(page_number=page_number, blocks=current_blocks, images=[], tables=[]))
+            pages.append(ExtractedPage(page_number=page_number, width=612.0, height=792.0, blocks=current_blocks, images=[], tables=[]))
 
         return ExtractedDocument(
             source_path=str(txt_path),
