@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import {
   Sparkles,
   BookOpen,
@@ -6,14 +6,10 @@ import {
   Zap,
   ArrowRight,
   Upload,
-  CheckCircle2,
-  ShieldCheck,
-  Star,
-  BarChart3,
   Layers,
 } from "lucide-react";
 
-export default function Home() {
+export function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary selection:text-primary-foreground">
       {/* Landing Navbar */}
@@ -34,13 +30,13 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/sign-in"
+              to="/sign-in"
               className="text-xs font-bold text-foreground px-4 py-2 rounded-xl hover:bg-secondary transition-all"
             >
               Sign In
             </Link>
             <Link
-              href="/sign-up"
+              to="/sign-up"
               className="text-xs font-bold bg-primary text-primary-foreground px-4 py-2.5 rounded-xl hover:opacity-90 shadow-md shadow-primary/20 transition-all flex items-center gap-1.5"
             >
               <span>Get Started Free</span>
@@ -74,14 +70,14 @@ export default function Home() {
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Link
-              href="/sign-up"
+              to="/sign-up"
               className="h-12 px-8 rounded-2xl bg-primary text-primary-foreground font-extrabold text-sm flex items-center gap-2 hover:opacity-90 shadow-xl shadow-primary/25 transition-all cursor-pointer"
             >
               <Upload className="h-4.5 w-4.5" />
               <span>Upload PDF & Create Course</span>
             </Link>
             <Link
-              href="/dashboard"
+              to="/dashboard"
               className="h-12 px-8 rounded-2xl border border-border bg-card text-foreground font-extrabold text-sm flex items-center gap-2 hover:bg-secondary transition-all cursor-pointer shadow-xs"
             >
               <BookOpen className="h-4.5 w-4.5 text-primary" />
@@ -143,12 +139,13 @@ export default function Home() {
             <span className="font-bold text-foreground">Structura Inc. &copy; {new Date().getFullYear()}</span>
           </div>
           <div className="flex gap-6 font-semibold">
-            <Link href="/dashboard" className="hover:text-foreground">Dashboard</Link>
-            <Link href="/sign-in" className="hover:text-foreground">Sign In</Link>
-            <Link href="/sign-up" className="hover:text-foreground">Sign Up</Link>
+            <Link to="/dashboard" className="hover:text-foreground">Dashboard</Link>
+            <Link to="/sign-in" className="hover:text-foreground">Sign In</Link>
+            <Link to="/sign-up" className="hover:text-foreground">Sign Up</Link>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+export default LandingPage;

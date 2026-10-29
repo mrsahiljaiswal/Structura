@@ -3,9 +3,7 @@
  * Integrates study targets and cache reset triggers.
  */
 
-"use client";
-
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -15,7 +13,7 @@ import { coursePersistence } from "@/lib/services/course-service";
 import { Settings, User, Sliders, Trash2, ShieldAlert, Sparkles } from "lucide-react";
 import { Select } from "@/components/ui/select";
 
-export default function SettingsPage() {
+export function SettingsPage() {
   const toast = useToast();
   const [targetTime, setTargetTime] = useState("30");
   const [profileName, setProfileName] = useState("Sahil Jaiswal");
@@ -78,7 +76,6 @@ export default function SettingsPage() {
                   className="bg-background border-border"
                 />
               </div>
-            
             </div>
           </CardContent>
         </Card>
@@ -98,7 +95,6 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-6 pt-0">
             <div className="space-y-2">
-
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 Daily Learning Target
               </label>
@@ -152,3 +148,4 @@ export default function SettingsPage() {
     </DashboardLayout>
   );
 }
+export default SettingsPage;

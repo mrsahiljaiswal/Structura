@@ -1,3 +1,4 @@
+import anyio
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,10 +35,12 @@ async def create_course(
         file_tuples.append((f.filename, content))
 
     service = get_document_service()
-    response = service.save_batch_upload(
-        files=file_tuples,
-        course_title=title,
-        user_id=x_user_id,
+    response = await anyio.to_thread.run_sync(
+        lambda: service.save_batch_upload(
+            files=file_tuples,
+            course_title=title,
+            user_id=x_user_id,
+        )
     )
     if response.course_id is None:
         raise HTTPException(status_code=500, detail="Course creation failed")

@@ -2,15 +2,14 @@ import { z } from "zod";
 
 /**
  * Validate and expose environment variables with full type-safety.
- * Import `env` instead of reaching for `process.env` directly so invalid
- * or missing configuration fails fast, at build/startup time.
+ * Import `env` instead of reaching for env vars directly.
  */
 const envSchema = z.object({
-  NEXT_PUBLIC_API_URL: z.string().url().default("http://localhost:8000"),
+  VITE_API_URL: z.string().url().default("http://localhost:8000"),
 });
 
 const parsed = envSchema.safeParse({
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  VITE_API_URL: import.meta.env.VITE_API_URL,
 });
 
 if (!parsed.success) {
@@ -21,4 +20,7 @@ if (!parsed.success) {
   throw new Error("Invalid environment variables");
 }
 
-export const env = parsed.data;
+export const env = {
+  NEXT_PUBLIC_API_URL: parsed.data.VITE_API_URL,
+  VITE_API_URL: parsed.data.VITE_API_URL,
+};

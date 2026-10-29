@@ -1,8 +1,6 @@
-"use client";
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { KeyboardEvent } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/clerk-react";
 import { MarkdownRenderer } from "@/components/reader/markdown-renderer";
 
 type GroundingMode = "courses_only" | "both" | "web_only";
@@ -30,7 +28,7 @@ interface ApiErrorBody {
   detail?: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const GROUNDING_LABELS: Record<GroundingMode, { label: string; icon: string; hint: string }> = {
   courses_only: { label: "Courses Only", icon: "📘", hint: "Answers strictly from your uploaded lessons" },

@@ -5,21 +5,18 @@
  * Feature 3: Dynamic Practice Challenge & Quiz Generator
  */
 
-"use client";
-
 import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { SuggestedPrompts, ChatMessages, ChatInput, ChatMessage } from "@/components/tutor";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCourses } from "@/hooks/use-courses";
 import api from "@/lib/axios";
-import { Sparkles, MessageSquare, BookOpen, Brain, Zap, HelpCircle, CheckCircle2, RotateCcw } from "lucide-react";
-
+import { Sparkles, MessageSquare, Brain, Zap, HelpCircle, CheckCircle2, RotateCcw } from "lucide-react";
 import { coursePersistence } from "@/lib/services/course-service";
 import { MarkdownRenderer } from "@/components/reader/markdown-renderer";
 
-export default function TutorPage() {
+export function TutorPage() {
   const { courses } = useCourses();
   const [activeTab, setActiveTab] = useState<"chat" | "explainer" | "quiz">("chat");
 
@@ -98,6 +95,7 @@ export default function TutorPage() {
     try {
       coursePersistence.addStudyTime(30);
       coursePersistence.addActivity("chatbot", "Talked with AI Tutor", text.slice(0, 40));
+
       const history = messages
         .filter((m) => m.id !== "welcome")
         .map((m) => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text }));
@@ -148,7 +146,7 @@ export default function TutorPage() {
       setExplainerResult(res.data.reply);
     } catch (err) {
       setExplainerResult("⚠️ Failed to generate explanation. Please try selecting a course context.");
-    } finally {
+    } fontally: () => {
       setIsExplaining(false);
     }
   };
@@ -157,7 +155,7 @@ export default function TutorPage() {
     setIsGeneratingQuiz(true);
     setQuizSubmitted(false);
     setUserQuizAnswers({});
-    setQuizQuestions([]); // Reset to force fresh generation
+    setQuizQuestions([]);
 
     const selectedCourse = courses.find((c) => c.id === selectedCourseId) || courses[0];
     const courseTitle = selectedCourse ? selectedCourse.title : "your enrolled course";
@@ -191,7 +189,6 @@ Return strictly JSON array format without markdown fence:
       if (Array.isArray(parsed) && parsed.length > 0) {
         setQuizQuestions(parsed);
       } else {
-        // Dynamic fallback built from real enrolled course lessons
         const generated: Array<{ question: string; options: string[]; answer: string; explanation: string }> = [];
         const lessons: Array<{ title: string; summary?: string }> = [];
 
@@ -399,7 +396,6 @@ Return strictly JSON array format without markdown fence:
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5 bg-secondary/40 p-2.5 rounded-2xl border border-primary/20 backdrop-blur-md">
-                  {/* Course Context Selection */}
                   <select
                     value={selectedCourseId}
                     onChange={(e) => setSelectedCourseId(e.target.value)}
@@ -413,7 +409,6 @@ Return strictly JSON array format without markdown fence:
                     ))}
                   </select>
 
-                  {/* Question Type Selection */}
                   <select
                     value={quizQuestionType}
                     onChange={(e) => setQuizQuestionType(e.target.value)}
@@ -425,7 +420,6 @@ Return strictly JSON array format without markdown fence:
                     <option value="short_answer">Coding / Short Answer</option>
                   </select>
 
-                  {/* Question Quantity Selection */}
                   <select
                     value={quizQuestionCount}
                     onChange={(e) => setQuizQuestionCount(Number(e.target.value))}
@@ -539,3 +533,4 @@ Return strictly JSON array format without markdown fence:
     </DashboardLayout>
   );
 }
+export default TutorPage;

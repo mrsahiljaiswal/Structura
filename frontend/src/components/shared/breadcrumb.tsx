@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ export function Breadcrumb({ className, items, ...props }: BreadcrumbProps) {
       {...props}
     >
       <Link
-        href="/dashboard"
+        to="/dashboard"
         className="flex items-center gap-1 hover:text-foreground transition-colors"
       >
         <Home className="h-3.5 w-3.5" />
@@ -43,7 +43,7 @@ export function Breadcrumb({ className, items, ...props }: BreadcrumbProps) {
               </span>
             ) : (
               <Link
-                href={item.href}
+                to={item.href}
                 className="hover:text-foreground transition-colors truncate max-w-[150px]"
               >
                 {item.label}

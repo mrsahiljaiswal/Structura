@@ -3,10 +3,8 @@
  * Composes widgets, greetings streaks, stat cards, and learning timeline.
  */
 
-"use client";
-
 import React from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/clerk-react";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { ProjectPurposeHero } from "@/components/dashboard/project-purpose-hero";
@@ -16,10 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useCourses } from "@/hooks/use-courses";
 import { useUserProgress } from "@/hooks/use-user-progress";
-import { coursePersistence } from "@/lib/services/course-service";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import {
   Clock,
   BookOpen,
@@ -32,9 +29,9 @@ import {
   BookMarked,
 } from "lucide-react";
 
-export default function DashboardPage() {
+export function DashboardPage() {
   const { isLoaded, user } = useUser();
-  const router = useRouter();
+  const navigate = useNavigate();
   const { courses, isLoading: isCoursesLoading } = useCourses();
   const { progress, avgQuizScore, isLoading: isProgressLoading } = useUserProgress();
 
@@ -169,7 +166,7 @@ export default function DashboardPage() {
                         </div>
                         {firstLesson && (
                           <Button
-                            onClick={() => router.push(`/dashboard/lesson/${firstLesson.id}`)}
+                            onClick={() => navigate(`/dashboard/lesson/${firstLesson.id}`)}
                             variant="default"
                             size="sm"
                             className="w-full sm:w-auto shrink-0 gap-1.5 shadow-xs font-semibold"
@@ -187,7 +184,7 @@ export default function DashboardPage() {
                     title="No courses created yet"
                     description="Upload your first document to generate a structured AI study path."
                     actionText="Generate Course"
-                    onAction={() => router.push("/dashboard/upload")}
+                    onAction={() => navigate("/dashboard/upload")}
                   />
                 )}
               </CardContent>
@@ -200,7 +197,7 @@ export default function DashboardPage() {
                 return (
                   <button
                     key={action.label}
-                    onClick={() => router.push(action.href)}
+                    onClick={() => navigate(action.href)}
                     className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border bg-card text-center hover:border-border hover:bg-accent/40 active:scale-98 transition-all duration-200 cursor-pointer shadow-xs"
                   >
                     <div className="rounded-xl p-2.5 bg-accent border border-indigo-500/20 text-primary mb-3">
@@ -223,3 +220,4 @@ export default function DashboardPage() {
     </DashboardLayout>
   );
 }
+export default DashboardPage;

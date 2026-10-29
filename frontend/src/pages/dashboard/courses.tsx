@@ -3,10 +3,8 @@
  * Displays generated courses, search filters, and actionable empty states.
  */
 
-"use client";
-
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { CourseCard } from "@/components/courses/course-card";
 import { Input } from "@/components/ui/input";
@@ -14,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCourses } from "@/hooks/use-courses";
-import { Sparkles, Search, Plus, BookOpen } from "lucide-react";
+import { Sparkles, Search, Plus } from "lucide-react";
 
-export default function CoursesPage() {
-  const router = useRouter();
+export function CoursesPage() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const { courses, isLoading, isError, removeCourse } = useCourses();
+  const { courses, isLoading, removeCourse } = useCourses();
 
   const breadcrumbs = [
     { label: "My Courses", href: "/dashboard/courses" },
@@ -51,7 +49,7 @@ export default function CoursesPage() {
 
           {courses.length > 0 && (
             <Button
-              onClick={() => router.push("/dashboard/upload")}
+              onClick={() => navigate("/dashboard/upload")}
               className="rounded-xl shrink-0 gap-1.5 self-start sm:self-auto"
             >
               <Plus className="h-4.5 w-4.5" />
@@ -74,7 +72,7 @@ export default function CoursesPage() {
               title="Looks like you're just getting started"
               description="Upload your first PDF document to generate an AI-powered course outline with lessons, bookmarks, and tutoring."
               actionText="Generate Course"
-              onAction={() => router.push("/dashboard/upload")}
+              onAction={() => navigate("/dashboard/upload")}
             />
           </div>
         ) : (
@@ -118,3 +116,4 @@ export default function CoursesPage() {
     </DashboardLayout>
   );
 }
+export default CoursesPage;

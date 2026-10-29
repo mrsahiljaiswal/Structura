@@ -3,15 +3,13 @@
  * Composes UploadDropZone inside centered UploadLayout.
  */
 
-"use client";
-
 import React from "react";
 import { UploadLayout } from "@/components/layouts/upload-layout";
 import { UploadDropZone } from "@/components/upload/upload-drop-zone";
-import { BookOpen, Sparkles, AlertCircle } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { BookOpen, Sparkles } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
-export default function UploadPage() {
+export function UploadPage() {
   const breadcrumbs = [
     { label: "Upload", href: "/dashboard/upload" },
   ];
@@ -81,3 +79,4 @@ export default function UploadPage() {
     </UploadLayout>
   );
 }
+export default UploadPage;

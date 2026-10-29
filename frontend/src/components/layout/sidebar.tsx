@@ -1,7 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
@@ -22,7 +19,8 @@ const sidebarItems = [
 ];
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const location = useLocation();
+  const pathname = location.pathname;
 
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 border-r border-zinc-800 bg-zinc-900/80 p-4 backdrop-blur-sm">
@@ -32,7 +30,7 @@ export function Sidebar() {
           return (
             <Link
               key={href}
-              href={href}
+              to={href}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 isActive

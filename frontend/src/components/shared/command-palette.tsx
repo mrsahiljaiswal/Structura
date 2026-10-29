@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, BookOpen, Compass, ShieldAlert, Sparkles, Settings, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ export function CommandPalette({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +49,7 @@ export function CommandPalette({
       category: "Navigation",
       icon: <Compass className="h-4 w-4" />,
       action: () => {
-        router.push("/dashboard");
+        navigate("/dashboard");
         onClose();
       },
     },
@@ -60,7 +60,7 @@ export function CommandPalette({
       category: "Navigation",
       icon: <BookOpen className="h-4 w-4" />,
       action: () => {
-        router.push("/dashboard/courses");
+        navigate("/dashboard/courses");
         onClose();
       },
     },
@@ -71,7 +71,7 @@ export function CommandPalette({
       category: "Navigation",
       icon: <Sparkles className="h-4 w-4" />,
       action: () => {
-        router.push("/dashboard/upload");
+        navigate("/dashboard/upload");
         onClose();
       },
     },
@@ -82,7 +82,7 @@ export function CommandPalette({
       category: "Navigation",
       icon: <Sparkles className="h-4 w-4" />,
       action: () => {
-        router.push("/dashboard/tutor");
+        navigate("/dashboard/tutor");
         onClose();
       },
     },
@@ -93,7 +93,7 @@ export function CommandPalette({
       category: "Settings",
       icon: <Settings className="h-4 w-4" />,
       action: () => {
-        router.push("/dashboard/settings");
+        navigate("/dashboard/settings");
         onClose();
       },
     },
@@ -158,7 +158,7 @@ export function CommandPalette({
         category: "Topics & Courses",
         icon: <BookOpen className="h-4 w-4" />,
         action: () => {
-          router.push(`/dashboard/course/${course.id}`);
+          navigate(`/dashboard/course/${course.id}`);
           onClose();
         },
       });
@@ -174,9 +174,9 @@ export function CommandPalette({
           action: () => {
             const firstLesson = chapter.lessons?.[0];
             if (firstLesson) {
-              router.push(`/dashboard/lesson/${firstLesson.id}`);
+              navigate(`/dashboard/lesson/${firstLesson.id}`);
             } else {
-              router.push(`/dashboard/course/${course.id}`);
+              navigate(`/dashboard/course/${course.id}`);
             }
             onClose();
           },
@@ -191,7 +191,7 @@ export function CommandPalette({
             category: "Lessons",
             icon: <BookOpen className="h-4 w-4" />,
             action: () => {
-              router.push(`/dashboard/lesson/${lesson.id}`);
+              navigate(`/dashboard/lesson/${lesson.id}`);
               onClose();
             },
           });
@@ -216,7 +216,7 @@ export function CommandPalette({
                   category: "Keywords",
                   icon: <Sparkles className="h-4 w-4" />,
                   action: () => {
-                    router.push(`/dashboard/lesson/${lesson.id}?highlight=${encodeURIComponent(keywordTitle)}`);
+                    navigate(`/dashboard/lesson/${lesson.id}?highlight=${encodeURIComponent(keywordTitle)}`);
                     onClose();
                   },
                 });
@@ -242,7 +242,7 @@ export function CommandPalette({
                 category: "Deep Content Search",
                 icon: <Search className="h-4 w-4 text-amber-400" />,
                 action: () => {
-                  router.push(`/dashboard/lesson/${lesson.id}?highlight=${encodeURIComponent(search.trim())}`);
+                  navigate(`/dashboard/lesson/${lesson.id}?highlight=${encodeURIComponent(search.trim())}`);
                   onClose();
                 },
               });

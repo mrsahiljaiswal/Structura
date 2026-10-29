@@ -3,11 +3,9 @@
  * Composes outlines, text readers, sticky scroll progress, and note drawers.
  */
 
-"use client";
-
 import React, { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { ReaderLayout } from "@/components/layouts/reader-layout";
 import { StickyProgress, MarkdownRenderer, NotesPanel, PracticeQuiz, AudioNarrator } from "@/components/reader";
@@ -23,11 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
-  Pin,
   Clock,
   Sparkles,
-  ArrowLeft,
-  Bookmark,
 } from "lucide-react";
 
 interface Lesson {
@@ -41,16 +36,14 @@ interface Lesson {
   course_id?: string;
 }
 
-export default function LessonPage() {
-  const params = useParams();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export function LessonDetailPage() {
+  const { lessonId } = useParams<{ lessonId: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const lessonId = params?.lessonId as string;
-  const rawHighlight = searchParams?.get("highlight") || searchParams?.get("search") || null;
+  const rawHighlight = searchParams.get("highlight") || searchParams.get("search") || null;
 
   const [saving, setSaving] = useState(false);
-  const [readTimeSec, setReadTimeSec] = useState(0);
   const [activeHighlight, setActiveHighlight] = useState<string | null>(rawHighlight);
   const [spokenSentence, setSpokenSentence] = useState<string | null>(null);
 
@@ -75,7 +68,7 @@ export default function LessonPage() {
     }
   }, [rawHighlight]);
 
-  // 1. Fetch lesson details via React Query
+  // Fetch lesson details via React Query
   const { data: lesson, isLoading, isError, error } = useQuery<Lesson>({
     queryKey: ["lesson", lessonId],
     queryFn: async () => {
@@ -95,13 +88,13 @@ export default function LessonPage() {
     enabled: !!lessonId && !isLoading && !!lesson,
   });
 
-  // 2. Scan courses to locate the EXACT course that owns this lesson
+  // Scan courses to locate the EXACT course that owns this lesson
   const { courses, isLoading: isCoursesLoading } = useCourses();
 
   const activeCourse = React.useMemo(() => {
     if (!courses || courses.length === 0) return null;
 
-    const queryCourseId = searchParams?.get("course_id");
+    const queryCourseId = searchParams.get("course_id");
     const targetCourseId = lesson?.course_id || queryCourseId;
 
     if (targetCourseId) {
@@ -127,27 +120,22 @@ export default function LessonPage() {
     if (!lessonId) return;
     setSaving(true);
     try {
-      // Calculate lesson word count and estimate reading time (200 WPM)
       const wordCount = lesson?.content ? lesson.content.split(/\s+/).length : 0;
       const readingMinutes = Math.max(1, Math.round(wordCount / 200));
       const readingSeconds = readingMinutes * 60;
 
-      // Add actual lesson reading time to persistent logs
       coursePersistence.addStudyTime(readingSeconds);
 
-      // call backend patch
       await api.patch(`/api/v1/lessons/${lessonId}/complete`);
-      // Update client cache
       coursePersistence.toggleLessonComplete(lessonId);
       queryClient.invalidateQueries({ queryKey: ["lesson", lessonId] });
       
-      // Navigate to next lesson if available, else go back to course details
       if (nextLesson) {
-        router.push(`/dashboard/lesson/${nextLesson.id}`);
+        navigate(`/dashboard/lesson/${nextLesson.id}`);
       } else if (activeCourse) {
-        router.push(`/dashboard/course/${activeCourse.id}`);
+        navigate(`/dashboard/course/${activeCourse.id}`);
       } else {
-        router.push("/dashboard/courses");
+        navigate("/dashboard/courses");
       }
     } catch (err) {
       // ignore
@@ -182,7 +170,7 @@ export default function LessonPage() {
           title="Failed to load lesson"
           description={error instanceof Error ? error.message : "The requested lesson is unavailable."}
           actionText="Back to Courses"
-          onAction={() => router.push("/dashboard/courses")}
+          onAction={() => navigate("/dashboard/courses")}
         />
       </ReaderLayout>
     );
@@ -202,7 +190,7 @@ export default function LessonPage() {
       ]
     : [{ label: "Lesson Reader" }];
 
-  const isCompleted = coursePersistence.isLessonCompleted(lessonId);
+  const isCompleted = lessonId ? coursePersistence.isLessonCompleted(lessonId) : false;
 
   // Left Column Sidebar outline navigator
   const outlineSidebar = isCoursesLoading ? (
@@ -237,7 +225,7 @@ export default function LessonPage() {
                 return (
                   <button
                     key={l.id}
-                    onClick={() => router.push(`/dashboard/lesson/${l.id}`)}
+                    onClick={() => navigate(`/dashboard/lesson/${l.id}`)}
                     className={cn(
                       "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors text-left cursor-pointer",
                       isCurrent
@@ -265,9 +253,9 @@ export default function LessonPage() {
   );
 
   // Right Column Sidebar notes pane
-  const notesSidebar = (
+  const notesSidebar = lessonId ? (
     <NotesPanel lessonId={lessonId} lessonTitle={lesson.title} />
-  );
+  ) : null;
 
   return (
     <ReaderLayout
@@ -275,11 +263,9 @@ export default function LessonPage() {
       rightSidebar={notesSidebar}
       breadcrumbs={breadcrumbs}
     >
-      {/* Sticky top scroll indicator */}
       <StickyProgress />
 
       <div className="space-y-8 select-text">
-        {/* Header Title Block */}
         <section className="space-y-3 border-b border-border/20 pb-6 text-left">
           <div className="flex items-center gap-2">
             <Badge variant="info">Lesson {lesson.position}</Badge>
@@ -307,8 +293,7 @@ export default function LessonPage() {
           </div>
         </section>
 
-        {/* Audio Narration Bar */}
-        {lesson.content && (
+        {lesson.content && lessonId && (
           <AudioNarrator
             text={lesson.content}
             title={lesson.title}
@@ -317,7 +302,6 @@ export default function LessonPage() {
           />
         )}
 
-        {/* Prose Center: Reading content */}
         <section className="prose max-w-none">
           {lesson.content ? (
             <MarkdownRenderer
@@ -330,7 +314,6 @@ export default function LessonPage() {
           )}
         </section>
 
-        {/* Key Takeaways list */}
         {lesson.key_takeaways && lesson.key_takeaways.length > 0 && (
           <section className="rounded-2xl border border-border bg-card shadow-xs p-6 space-y-4 text-left">
             <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
@@ -341,14 +324,13 @@ export default function LessonPage() {
               {lesson.key_takeaways.map((takeaway, idx) => (
                 <li key={idx} className="flex items-start gap-2.5 text-sm font-medium text-foreground leading-relaxed">
                   <span className="text-primary font-bold mt-0.5 select-none">•</span>
-                  <span>{takeaway}</span>
+                  <span>{typeof takeaway === "string" ? takeaway : JSON.stringify(takeaway)}</span>
                 </li>
               ))}
             </ul>
           </section>
         )}
 
-        {/* Interactive Practice Quiz */}
         <section>
           {isQuizLoading ? (
             <div className="space-y-4 rounded-2xl border border-border/20 p-6 animate-pulse">
@@ -358,7 +340,7 @@ export default function LessonPage() {
               <Skeleton className="h-10 w-full rounded-xl bg-zinc-800" />
             </div>
           ) : (
-            quizData?.questions && quizData.questions.length > 0 ? (
+            quizData?.questions && quizData.questions.length > 0 && lessonId ? (
               <PracticeQuiz lessonTitle={lesson.title} lessonId={lessonId} questions={quizData.questions} />
             ) : (
               <p className="text-zinc-500 italic">No quiz questions generated for this lesson.</p>
@@ -366,9 +348,7 @@ export default function LessonPage() {
           )}
         </section>
 
-        {/* Page Footer Navigation Buttons */}
         <section className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/20 pt-6 mt-12">
-          {/* Complete trigger */}
           <Button
             onClick={markComplete}
             disabled={saving}
@@ -379,10 +359,9 @@ export default function LessonPage() {
             <span>{isCompleted ? "Mark Incomplete" : "Mark Complete & Next"}</span>
           </Button>
 
-          {/* Nav buttons */}
           <div className="flex gap-2 w-full sm:w-auto">
             <Button
-              onClick={() => prevLesson && router.push(`/dashboard/lesson/${prevLesson.id}`)}
+              onClick={() => prevLesson && navigate(`/dashboard/lesson/${prevLesson.id}`)}
               disabled={!prevLesson}
               variant="outline"
               size="sm"
@@ -392,7 +371,7 @@ export default function LessonPage() {
               <span>Prev</span>
             </Button>
             <Button
-              onClick={() => nextLesson && router.push(`/dashboard/lesson/${nextLesson.id}`)}
+              onClick={() => nextLesson && navigate(`/dashboard/lesson/${nextLesson.id}`)}
               disabled={!nextLesson}
               variant="outline"
               size="sm"
@@ -407,3 +386,4 @@ export default function LessonPage() {
     </ReaderLayout>
   );
 }
+export default LessonDetailPage;

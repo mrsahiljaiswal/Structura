@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -38,7 +37,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isCollapsed: externalCollapsed, isMobile = false, onToggle }: SidebarProps) {
-  const pathname = usePathname();
+  const location = useLocation();
+  const pathname = location.pathname;
   const [isInternalCollapsed, setIsInternalCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -95,7 +95,7 @@ export function Sidebar({ isCollapsed: externalCollapsed, isMobile = false, onTo
             return (
               <Link
                 key={href}
-                href={href}
+                to={href}
                 className={cn(
                   "relative flex items-center h-10 rounded-xl px-3 text-sm font-medium transition-colors group select-none",
                   isActive
@@ -130,7 +130,7 @@ export function Sidebar({ isCollapsed: externalCollapsed, isMobile = false, onTo
               {pinnedCourses.map((c) => (
                 <Link
                   key={c.id}
-                  href={`/dashboard/course/${c.id}`}
+                  to={`/dashboard/course/${c.id}`}
                   className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground truncate py-1 transition-colors"
                 >
                   <div className="h-1.5 w-1.5 rounded-full bg-primary" />

@@ -3,19 +3,15 @@
  * Features progress metrics, quiz stats, and weekly study heatmaps.
  */
 
-"use client";
-
 import React from "react";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useCourses } from "@/hooks/use-courses";
 import { coursePersistence } from "@/lib/services/course-service";
 import { BarChart3, Clock, Trophy, Award, Calendar, Sparkles } from "lucide-react";
-
 import { useUserProgress } from "@/hooks/use-user-progress";
 
-export default function AnalyticsPage() {
+export function AnalyticsPage() {
   const { courses } = useCourses();
   const { progress } = useUserProgress();
   const completedLessonsCount = (progress?.completed_lessons || []).length;
@@ -36,8 +32,8 @@ export default function AnalyticsPage() {
   });
   const totalStudyTimeHr = parseFloat((totalStudyTimeSec / 3600).toFixed(1));
   const streak = {
-    count: progress.streak_count || 0,
-    lastDate: progress.streak_last_date || null,
+    count: progress?.streak_count || 0,
+    lastDate: progress?.streak_last_date || null,
   };
 
   const breadcrumbs = [
@@ -174,3 +170,4 @@ export default function AnalyticsPage() {
     </DashboardLayout>
   );
 }
+export default AnalyticsPage;

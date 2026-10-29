@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { GitBranch, BookOpen, Layers, CheckCircle, Sparkles, Filter, ArrowRight, Check, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 interface MindMapLesson {
@@ -31,7 +31,7 @@ export function MindMapViewer({
   chapters,
   completedLessonIds = [],
 }: MindMapViewerProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [filterMode, setFilterMode] = useState<"all" | "completed" | "unread">("all");
   const [selectedLesson, setSelectedLesson] = useState<{ id: string; title: string; chapterTitle: string } | null>(null);
 
@@ -233,7 +233,7 @@ export function MindMapViewer({
 
             <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
               <Button
-                onClick={() => router.push(`/dashboard/lesson/${selectedLesson.id}`)}
+                onClick={() => navigate(`/dashboard/lesson/${selectedLesson.id}`)}
                 size="sm"
                 className="w-full sm:w-auto rounded-xl gap-2 font-bold shadow-xs bg-primary text-primary-foreground hover:opacity-90"
               >

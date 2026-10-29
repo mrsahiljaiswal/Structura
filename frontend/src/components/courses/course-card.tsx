@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Play, Pin, Heart, MoreVertical, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, onDelete }: CourseCardProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const { removeCourse } = useCourses();
   const [isPinned, setIsPinned] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -66,7 +66,7 @@ export function CourseCard({ course, onDelete }: CourseCardProps) {
 
   return (
     <Card
-      onClick={() => router.push(`/dashboard/course/${course.id}`)}
+      onClick={() => navigate(`/dashboard/course/${course.id}`)}
       className="group relative flex flex-col justify-between rounded-2xl overflow-visible border border-border cursor-pointer bg-card hover:border-primary/50 hover:shadow-md transition-all duration-300 select-none max-w-sm w-full mx-auto"
     >
       {/* Upper Thumbnail Section */}

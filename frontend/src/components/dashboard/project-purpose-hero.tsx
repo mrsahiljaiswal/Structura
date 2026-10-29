@@ -4,10 +4,8 @@
  * Serves as the primary center of attraction with a direct Upload CTA button.
  */
 
-"use client";
-
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -22,7 +20,7 @@ import {
 } from "lucide-react";
 
 export function ProjectPurposeHero() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   return (
     <Card className="relative overflow-hidden border border-border bg-card shadow-md rounded-3xl p-6 sm:p-8">
@@ -49,7 +47,7 @@ export function ProjectPurposeHero() {
           {/* Main Action Button */}
           <div className="shrink-0">
             <Button
-              onClick={() => router.push("/dashboard/upload")}
+              onClick={() => navigate("/dashboard/upload")}
               size="lg"
               className="h-13 px-8 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-indigo-500/25 hover:opacity-95 active:scale-98 transition-all gap-3 cursor-pointer group"
             >

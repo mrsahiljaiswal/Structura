@@ -3,11 +3,9 @@
  * Visualizes upload percentage and routes status updates through PipelineTimeline.
  */
 
-"use client";
-
 import React, { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useNavigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
 import { Upload, FileText, AlertCircle, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +33,7 @@ interface UploadState {
 }
 
 export function UploadDropZone() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const { user } = useUser();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -166,7 +164,7 @@ export function UploadDropZone() {
 
           if (response.course_id) {
             try {
-              router.push(`/dashboard/course/${response.course_id}`);
+              navigate(`/dashboard/course/${response.course_id}`);
             } catch (e) {
               // ignore navigation redirect error
             }
@@ -196,7 +194,7 @@ export function UploadDropZone() {
         }));
       });
 
-      xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/v1/documents/upload`);
+      xhr.open("POST", `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/v1/documents/upload`);
       const activeUserId = user?.id || (typeof window !== "undefined" ? localStorage.getItem("structura_active_user_id") : null);
       if (activeUserId) {
         xhr.setRequestHeader("X-User-Id", activeUserId);
@@ -211,7 +209,7 @@ export function UploadDropZone() {
         processingResult: null,
       });
     }
-  }, [uploadState.files, router, user]);
+  }, [uploadState.files, navigate, user]);
 
   const handleReset = useCallback(() => {
     setUploadState({

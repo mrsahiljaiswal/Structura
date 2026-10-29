@@ -1,19 +1,17 @@
-"use client";
-
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { SignIn, useUser } from "@clerk/nextjs";
+import { useNavigate } from "react-router-dom";
+import { SignIn, useUser } from "@clerk/clerk-react";
 import { Sparkles, Brain, Zap, ShieldCheck, Star } from "lucide-react";
 
-export default function SignInPage() {
+export function SignInPage() {
   const { isLoaded, isSignedIn } = useUser();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.push("/dashboard");
+      navigate("/dashboard");
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, navigate]);
 
   return (
     <main className="min-h-screen w-full flex bg-background text-foreground overflow-hidden">
@@ -100,13 +98,11 @@ export default function SignInPage() {
         </div>
       </div>
 
-      {/* Right Column: Sleek Auth Form */}
+      {/* Right Column: Auth Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-12 relative bg-background/95 backdrop-blur-2xl">
-        {/* Mobile Background Ambient Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-primary/20 rounded-full blur-3xl lg:hidden pointer-events-none" />
 
         <div className="w-full max-w-md space-y-6 relative z-10">
-          {/* Mobile Header Branding */}
           <div className="flex lg:hidden items-center justify-center gap-2.5 mb-2">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
               <Sparkles className="h-5.5 w-5.5" />
@@ -119,11 +115,10 @@ export default function SignInPage() {
             <p className="text-xs sm:text-sm text-muted-foreground font-medium">Sign in to access your AI study workspace & courses</p>
           </div>
 
-          {/* Form Card Container */}
           <div className="rounded-3xl border border-primary/20 bg-card/80 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl ring-1 ring-white/10">
             <SignIn
               fallbackRedirectUrl="/dashboard"
-              forceRedirectUrl="/dashboard"
+              signUpUrl="/sign-up"
               appearance={{
                 elements: {
                   rootBox: "w-full",
@@ -148,3 +143,4 @@ export default function SignInPage() {
     </main>
   );
 }
+export default SignInPage;

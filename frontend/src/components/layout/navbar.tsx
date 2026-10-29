@@ -1,7 +1,5 @@
-"use client";
-
 import { SearchIcon, Bell } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/clerk-react";
 
 export function Navbar() {
   return (

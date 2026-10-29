@@ -3,16 +3,14 @@
  * Features expandable chapter panels, details statistics, and progress hooks.
  */
 
-"use client";
-
 import React, { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { DashboardLayout } from "@/components/layouts/dashboard-layout";
 import { CourseProgress } from "@/components/courses/course-progress";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -21,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { FlashcardsDeck, Flashcard } from "@/components/course/flashcards-deck";
 import { MindMapViewer } from "@/components/course/mind-map-viewer";
 import { CourseCertificate } from "@/components/course/course-certificate";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/clerk-react";
 import {
   Sparkles,
   BookOpen,
@@ -34,7 +32,6 @@ import {
   Pin,
   Heart,
   GitBranch,
-  Layers,
   Download,
 } from "lucide-react";
 
@@ -62,11 +59,10 @@ interface Course {
   chapters: Chapter[];
 }
 
-export default function CourseDetailPage() {
-  const params = useParams();
-  const router = useRouter();
+export function CourseDetailPage() {
+  const { courseId } = useParams<{ courseId: string }>();
+  const navigate = useNavigate();
   const { user } = useUser();
-  const courseId = params?.courseId as string;
 
   const [activeTab, setActiveTab] = useState<"outline" | "flashcards" | "mindmap">("outline");
   const [showCertificate, setShowCertificate] = useState(false);
@@ -139,7 +135,7 @@ export default function CourseDetailPage() {
           title="Failed to load course"
           description={error instanceof Error ? error.message : "The requested course could not be retrieved from the database."}
           actionText="Back to Courses"
-          onAction={() => router.push("/dashboard/courses")}
+          onAction={() => navigate("/dashboard/courses")}
         />
       </DashboardLayout>
     );
@@ -189,7 +185,7 @@ export default function CourseDetailPage() {
   }, 0);
   const totalCourseMinutes = Math.max(1, Math.ceil(totalCourseWords / 180));
 
-  // Generate Flashcards list from course takeaways with strict deduplication & quality cap (No default 19 duplicate cards)
+  // Generate Flashcards list from course takeaways
   const flashcardsList: Flashcard[] = [];
   const seenTexts = new Set<string>();
 
@@ -198,7 +194,7 @@ export default function CourseDetailPage() {
       if (l.key_takeaways && Array.isArray(l.key_takeaways)) {
         let lessonCardCount = 0;
         l.key_takeaways.forEach((t, i) => {
-          if (lessonCardCount >= 2) return; // Cap at max 2 distinct cards per lesson
+          if (lessonCardCount >= 2) return;
           const item = t as Record<string, unknown> | string;
           const text = typeof item === "string" ? item : String(item?.concept || item?.title || item?.takeaway || "");
           const cleanText = text.trim().toLowerCase();
@@ -248,7 +244,7 @@ export default function CourseDetailPage() {
         {/* Back navigation & Actions row */}
         <div className="flex items-center justify-between">
           <Button
-            onClick={() => router.push("/dashboard/courses")}
+            onClick={() => navigate("/dashboard/courses")}
             variant="ghost"
             size="sm"
             className="rounded-lg gap-1.5 text-zinc-400 hover:text-foreground"
@@ -341,7 +337,7 @@ export default function CourseDetailPage() {
               <CourseProgress course={course} size={52} strokeWidth={4.5} />
               {resumeLessonId && (
                 <Button
-                  onClick={() => router.push(`/dashboard/lesson/${resumeLessonId}`)}
+                  onClick={() => navigate(`/dashboard/lesson/${resumeLessonId}`)}
                   className="rounded-xl h-10 w-full md:w-auto px-6 gap-2 bg-primary text-primary-foreground font-semibold shadow-xs hover:opacity-90"
                 >
                   <BookOpen className="h-4.5 w-4.5" />
@@ -490,7 +486,7 @@ export default function CourseDetailPage() {
                         return (
                           <div
                             key={l.id}
-                            onClick={() => router.push(`/dashboard/lesson/${l.id}`)}
+                            onClick={() => navigate(`/dashboard/lesson/${l.id}`)}
                             className={cn(
                               "flex items-center justify-between rounded-xl px-4 py-3 cursor-pointer transition-colors text-xs font-medium border border-border/30",
                               isLessonDone ? "bg-card text-muted-foreground hover:text-foreground" : "bg-card text-foreground hover:bg-secondary shadow-2xs"
@@ -525,3 +521,4 @@ export default function CourseDetailPage() {
     </DashboardLayout>
   );
 }
+export default CourseDetailPage;

@@ -3,6 +3,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, Header, status
 
+import anyio
 from app.schemas.document import DocumentUploadResponse
 from app.services.document import get_document_service
 
@@ -46,9 +47,12 @@ async def upload_document(
 
     try:
         service = get_document_service()
-        response = service.save_batch_upload(
-            files=file_tuples,
-            user_id=x_user_id or "anonymous",
+        user_id_val = x_user_id or "anonymous"
+        response = await anyio.to_thread.run_sync(
+            lambda: service.save_batch_upload(
+                files=file_tuples,
+                user_id=user_id_val,
+            )
         )
 
         if response.course_id is None:
@@ -98,9 +102,12 @@ async def upload_document_batch(
 
     try:
         service = get_document_service()
-        response = service.save_batch_upload(
-            files=file_tuples,
-            user_id=x_user_id or "anonymous",
+        user_id_val = x_user_id or "anonymous"
+        response = await anyio.to_thread.run_sync(
+            lambda: service.save_batch_upload(
+                files=file_tuples,
+                user_id=user_id_val,
+            )
         )
         if response.course_id is None:
             raise HTTPException(

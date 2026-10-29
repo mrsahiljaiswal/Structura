@@ -8,7 +8,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
  * headers, logging, or retry logic in one place.
  */
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
   timeout: 60_000,
   headers: {
     "Content-Type": "application/json",
@@ -40,7 +40,7 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     // Centralized error handling/logging hook.
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.warn("[api response info]", error.response?.status, error.message);
     }

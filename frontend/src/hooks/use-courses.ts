@@ -4,7 +4,7 @@
  */
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/clerk-react";
 import api from "@/lib/axios";
 import { coursePersistence } from "@/lib/services/course-service";
 

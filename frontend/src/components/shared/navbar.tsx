@@ -5,7 +5,7 @@
 
 import React from "react";
 import { Bell, Menu } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/clerk-react";
 import { Breadcrumb } from "./breadcrumb";
 import { SearchBar } from "./search-bar";
 import { ThemeSwitcher } from "./theme-switcher";
