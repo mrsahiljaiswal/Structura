@@ -1,88 +1,284 @@
-# 🚀 Structura — AI Document Intelligence & Adaptive E-Course Platform
+<div align="center">
 
-> **Transform Raw PDF Textbooks & Engineering Manuals into Structured, Interactive E-Courses in under 45 seconds.**
+# 🧠 Structura
+### AI-Powered Document-to-Course Learning Platform
 
-Structura is a full-stack document-intelligence platform powered by a **10-Stage Document Intelligence Pipeline** using **Google Gemini 3.1 & 2.5 Flash Lite**. It enforces strict grounding using textbook problem-first authoring, multi-dimensional reviews, auto-corrective repair retry loops, grounded RAG AI tutoring, interactive quizzes, dynamic SVG flowcharts, and persistent study analytics.
+**Transform any PDF textbook or research paper into a fully structured, interactive learning course — powered by a 10-stage multi-agent AI pipeline.**
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-structura--psi.vercel.app-6366f1?style=for-the-badge&logo=vercel)](https://structura-psi.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-mrsahiljaiswal%2FStructura-181717?style=for-the-badge&logo=github)](https://github.com/mrsahiljaiswal/Structura)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/Frontend-React.js%20%2B%20Vite-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql)](https://postgresql.org)
+
+</div>
+
+---
+
+<!-- ============================================================ -->
+<!--  BANNER SCREENSHOT                                           -->
+<!--  Replace the block below with your actual banner image      -->
+<!-- ============================================================ -->
+
+> 📸 **[SCREENSHOT — Dashboard / Hero Banner]**
+> _Suggested: Full-width screenshot of the Structura dashboard homepage_
 
 ---
 
 ## 📑 Table of Contents
+
+- [Overview](#-overview)
+- [Live Demo](#-live-demo)
+- [Screenshots](#-screenshots)
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
-- [The 10-Stage Document Intelligence Pipeline](#-the-10-stage-document-intelligence-pipeline)
+- [The 10-Stage AI Pipeline](#-the-10-stage-ai-pipeline)
 - [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
 - [Local Setup & Installation](#-local-setup--installation)
 - [API Endpoints Reference](#-api-endpoints-reference)
 - [Deployment Guide](#-deployment-guide)
+- [License](#-license)
+
+---
+
+## 🧩 Overview
+
+Structura solves a real academic problem: learners are buried under unstructured PDFs, research papers, and dense textbooks with no clear path to understanding them.
+
+Structura ingests any PDF and runs it through a **10-stage multi-agent AI pipeline** — extracting knowledge, planning a curriculum, authoring lessons, running automated quality reviews, and assembling a complete structured course. The result is a university-style interactive learning experience complete with an AI Tutor, adaptive quizzes, concept maps, and study analytics — all generated from a single document upload.
+
+---
+
+## 🌐 Live Demo
+
+| Service | URL |
+|---|---|
+| 🖥️ Frontend (Vercel) | [structura-psi.vercel.app](https://structura-psi.vercel.app) |
+| ⚙️ Backend API (Render) | Render Web Service (FastAPI) |
+| 🗄️ Database | PostgreSQL 18 on Render (Singapore) |
+
+---
+
+## 📸 Screenshots
+
+<!-- ============================================================ -->
+<!--  SCREENSHOTS SECTION                                         -->
+<!--  Add your screenshots between the comment blocks below      -->
+<!-- ============================================================ -->
+
+### Upload Page
+> 📸 **[SCREENSHOT — Upload Page]**
+> _Drag-and-drop PDF upload interface with processing status_
+
+---
+
+### Generated Course — Chapter View
+> 📸 **[SCREENSHOT — Course Detail / Chapter Outline]**
+> _Auto-generated course with chapters, lessons, and progress indicators_
+
+---
+
+### Lesson Reader
+> 📸 **[SCREENSHOT — Lesson Reader]**
+> _Structured lesson with content, key takeaways, and worked examples_
+
+---
+
+### AI Tutor — RAG Chat
+> 📸 **[SCREENSHOT — AI Tutor Chat Interface]**
+> _Course-grounded conversational AI tutor answering document-specific questions_
+
+---
+
+### Practice Quiz
+> 📸 **[SCREENSHOT — Quiz Generator]**
+> _AI-generated adaptive quiz with multiple choice, true/false questions_
+
+---
+
+### Analytics Dashboard
+> 📸 **[SCREENSHOT — Analytics Page]**
+> _Study time tracking, lesson completion stats, and weekly activity heatmap_
 
 ---
 
 ## ✨ Key Features
 
-1. **Strict Grounding & Problem-First Authoring**:
-   - Textbook-style problem-first teaching templates with strict source text grounding mapping segment content back to exact pages using evidence mapping.
-2. **Auto-Corrective Repair Retry Loop**:
-   - Automated quality gate evaluating lessons against a **9-Dimensional Critique Rubric** (grounding, concept accuracy, completeness, pedagogy, clarity, etc.) with dynamic server-side scoring. Automatically feeds back review rejections to self-heal lessons (max 2 retries).
-3. **Dual-Model LLM Routing**:
-   - **Google Gemini 3.1 Flash Lite**: Ingests massive PDF context windows (1M tokens) for structural analysis, topological planning, lesson authoring, and review validation.
-   - **Google Gemini 2.5 Flash Lite**: Delivers sub-second response times for the course-grounded RAG AI Tutor and Practice Challenge quiz generator.
-4. **Interactive SVG Concept Flowcharts**:
-   - Vector path diagrams connecting the Central Knowledge Hub to Chapter Nodes and Lesson Branches.
-5. **Course-Grounded RAG AI Study Suite**:
-   - Feature 1: **RAG Chat** with persistent dialogue history and strict course relevance filtering.
-   - Feature 2: **Socratic Explainer** (ELI5, Analogy, Deep Academic Breakdown, Misconceptions).
-   - Feature 3: **Practice Challenge Quiz Generator** with question type selection (*Multiple Choice*, *True/False*, *Mixed*, *Coding/Short Answer*).
-6. **Real-Time Study Analytics & Time Persistence**:
-   - Automatically tracks study time across lesson reading, AI Tutor conversations, and practice quizzes, persisting daily streaks and average quiz scores.
+### 🔬 10-Stage Multi-Agent AI Pipeline
+A fully automated document intelligence pipeline that converts raw PDFs into structured courses. Every stage produces a validated artifact before passing to the next module — ensuring quality throughout generation.
+
+### 🔁 Auto-Corrective Repair Loop
+Lessons failing automated quality review are automatically fed back to the LLM for self-correction (up to 2 retries). A **9-Dimensional Critique Rubric** evaluates grounding accuracy, pedagogical clarity, concept completeness, factual consistency, and more.
+
+### 🤖 Dual-Provider LLM Routing with Fallback
+- **Priority 1 — Google Gemini**: Used for the full document processing pipeline and AI Tutor chat.
+- **Priority 2 — Groq (LLaMA 3)**: Automatic fallback if Gemini is rate-limited or unavailable.
+- Both providers include retry logic, rate-limit handling, and JSON self-correction.
+
+### 📚 RAG-Powered AI Tutor Suite
+Three distinct AI-powered study modes — all grounded strictly in the generated course content:
+- **RAG Chat**: Conversational Q&A with persistent dialogue history.
+- **Socratic Explainer**: Multi-depth concept explanations (ELI5, Analogy, Deep Academic, Misconceptions).
+- **Practice Quiz Generator**: Adaptive quiz generation (Multiple Choice, True/False, Mixed, Short Answer).
+
+### 📊 Study Analytics & Streak Tracking
+- Automatically tracks lesson reading time, quiz scores, and AI Tutor session time.
+- Persists daily study streaks, per-day study heatmaps, and cumulative progress.
+
+### 🗺️ Concept Mind Maps
+- SVG-based concept flowcharts connecting the knowledge hub to chapters and lesson branches.
+- Fully interactive, visually displaying the course knowledge graph.
+
+### 🔐 User Authentication
+- Clerk-powered authentication with protected dashboard routes.
+- Per-user course isolation — each user sees only their own generated courses.
 
 ---
 
 ## 🏛️ System Architecture
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│                    Next.js 15 Frontend                    │
-│   TanStack Query v5 • Tailwind Dark Glassmorphic Theme    │
-└─────────────────────────────┬─────────────────────────────┘
-                              │ HTTP REST / JSON
-                              ▼
-┌───────────────────────────────────────────────────────────┐
-│                     FastAPI Async API                     │
-│    Python 3.11 • SQLAlchemy 2.0 • PostgreSQL Database    │
-└─────────────────────────────┬─────────────────────────────┘
-                              │
-             ┌────────────────┴────────────────┐
-             ▼                                 ▼
-┌─────────────────────────┐       ┌─────────────────────────┐
-│  Gemini 3.1 Flash Lite  │       │  Gemini 2.5 Flash Lite  │
-│  • 10-Stage Pipeline    │       │  • Grounded RAG Chatbot │
-│  • Structural Analysis  │       │  • Socratic Explainer   │
-│  • Lesson Review/Repair │       │  • Practice Quizzes     │
-└─────────────────────────┘       └─────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     React.js SPA (Vite)                         │
+│   React Router v7 • Clerk Auth • TanStack Query • Lucide Icons  │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │  HTTP REST / JSON
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    FastAPI Async Backend                         │
+│      Python 3.12 • SQLAlchemy 2.0 (asyncpg) • Pydantic v2      │
+│                   Starlette CORS Middleware                      │
+└──────────────────┬────────────────────────┬─────────────────────┘
+                   │                        │
+       ┌───────────▼──────────┐  ┌──────────▼──────────────┐
+       │   PostgreSQL DB       │  │    LLM Routing Layer     │
+       │  Render Cloud (SG)   │  │  Gemini → Groq Fallback  │
+       │  5 Tables, JSONB      │  │  JSON Repair + Retry     │
+       └──────────────────────┘  └──────────────────────────┘
 ```
 
 ---
 
-## 🔬 The 10-Stage Document Intelligence Pipeline
+## 🔬 The 10-Stage AI Pipeline
 
-1. **Document Extraction**: Extracts raw text blocks using layout-aware spatial extractors (`PyPDF`/`PDFPlumber`).
-2. **Document Normalization**: Cleans whitespace, standardizes character sets, and formats the text stream.
-3. **Document Understanding**: Classifies document types and extracts title/author metadata via `gemini-3.1-flash-lite`.
-4. **Structural Analysis**: Constructs a hierarchical node tree mapping sections and subsection boundaries.
-5. **Knowledge Extraction**: Identifies domain concepts, definitions, and directed prerequisite edges (`Concept A -> Concept B`).
-6. **Semantic Segmentation**: Groups concepts into complete Learning Units without character truncation, keeping equations and code snippets intact.
-7. **Educational Planning**: Performs a deterministic topological sort on concept prerequisite edges to arrange chapters and lessons logically.
-8. **Lesson Authoring**: Authors Markdown content using textbook problem-first templates with evidence source mapping.
-9. **Educational Review (Repair Loop)**: Evaluates lessons against the 9-dimensional rubric, routing failures through the auto-corrective repair loop (up to 2 retries).
-10. **Course Assembly**: Validates complete course graph integrity and commits relational records to PostgreSQL using Async SQLAlchemy.
+Each stage runs sequentially. Every stage validates its output before passing it to the next module.
+
+```
+PDF File
+   │
+   ▼
+┌─────────────────────────────────────────┐
+│  Stage 1 │ Document Extraction          │  PyPDF / PDFPlumber → raw text blocks
+│  Stage 2 │ Document Normalization       │  Clean whitespace, fix encoding
+│  Stage 3 │ Document Understanding       │  LLM → classify type, extract metadata
+│  Stage 4 │ Document Structure Analysis  │  Build section/subsection hierarchy
+│  Stage 5 │ Knowledge Extraction         │  LLM → concepts, definitions, prereqs
+│  Stage 6 │ Semantic Segmentation        │  Group concepts into learning units
+│  Stage 7 │ Educational Planning         │  LLM → topological curriculum plan
+│  Stage 8 │ Lesson Authoring             │  LLM → write structured Markdown lessons
+│  Stage 9 │ Educational Review           │  LLM → 9-dim rubric score + repair loop
+│  Stage 10│ Course Assembly              │  Validate + persist to PostgreSQL
+└─────────────────────────────────────────┘
+   │
+   ▼
+Structured Course (Chapters → Lessons → Content)
+```
+
+> **Multi-Document Mode**: Stages 1–2 run per-file, then a Cross-Document Synthesis module merges and deduplicates before continuing from Stage 3.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, Framer Motion, TanStack React Query v5, Clerk Auth, Lucide Icons.
-- **Backend**: Python 3.11, FastAPI, Async SQLAlchemy 2.0, Pydantic v2, PostgreSQL (Render DB), Starlette CORS.
-- **AI Models**: Google Gemini 3.1 & 2.5 Flash Lite (`google.generativeai`).
+### Frontend
+| Technology | Purpose |
+|---|---|
+| React.js 19 + Vite | SPA framework & build tool |
+| React Router v7 | Client-side routing |
+| Clerk React | User authentication & session management |
+| TanStack Query v5 | Async server state, caching, refetching |
+| Lucide Icons | Icon library |
+| Vanilla CSS | Styling with custom design tokens |
+
+### Backend
+| Technology | Purpose |
+|---|---|
+| FastAPI | Async REST API framework |
+| Python 3.12 | Runtime |
+| SQLAlchemy 2.0 (asyncpg) | Async ORM + PostgreSQL driver |
+| Pydantic v2 | Data validation & schema enforcement |
+| Alembic | Database migrations |
+| PyPDF / PDFPlumber | PDF text extraction |
+| `requests` | HTTP client for LLM API calls |
+
+### AI & LLM
+| Technology | Purpose |
+|---|---|
+| Google Gemini (Flash Lite) | Document pipeline + AI Tutor |
+| Groq (LLaMA 3.3 70B) | Fallback LLM provider |
+| Custom LLMClient | Multi-provider routing, retry, JSON repair |
+
+### Infrastructure
+| Service | Purpose |
+|---|---|
+| Vercel | Frontend hosting (CDN + edge) |
+| Render | FastAPI backend hosting |
+| Render PostgreSQL 18 | Cloud database (Singapore) |
+| Clerk | Auth infrastructure |
+
+---
+
+## 📁 Project Structure
+
+```
+Structura/
+├── frontend/                        # React.js SPA (Vite)
+│   ├── index.html                   # Vite HTML entry point
+│   ├── vite.config.ts               # Vite + path alias config
+│   ├── src/
+│   │   ├── main.tsx                 # React app entry (ClerkProvider + QueryClient)
+│   │   ├── App.tsx                  # React Router routes + protected route guards
+│   │   ├── globals.css              # Global CSS design tokens
+│   │   ├── pages/                   # Page-level components
+│   │   │   ├── landing.tsx
+│   │   │   ├── sign-in.tsx
+│   │   │   ├── sign-up.tsx
+│   │   │   └── dashboard/
+│   │   │       ├── index.tsx        # Main dashboard
+│   │   │       ├── courses.tsx      # Course catalog
+│   │   │       ├── course-detail.tsx
+│   │   │       ├── lesson-detail.tsx
+│   │   │       ├── tutor.tsx        # AI Tutor suite
+│   │   │       ├── upload.tsx       # PDF upload
+│   │   │       ├── analytics.tsx
+│   │   │       └── settings.tsx
+│   │   ├── components/              # Reusable UI components
+│   │   ├── hooks/                   # Custom React hooks
+│   │   └── lib/                     # API client, config, utilities
+│
+├── backend/                         # FastAPI Python backend
+│   ├── app/
+│   │   ├── main.py                  # FastAPI app factory + lifespan
+│   │   ├── core/config.py           # Pydantic settings (env vars)
+│   │   ├── api/v1/                  # REST API route handlers
+│   │   │   ├── documents.py         # POST /upload
+│   │   │   ├── courses.py           # GET/DELETE /courses
+│   │   │   ├── lessons.py           # GET/PATCH /lessons
+│   │   │   ├── chat.py              # POST /chat (AI Tutor)
+│   │   │   └── user.py              # GET /user/progress
+│   │   ├── pipeline/
+│   │   │   ├── orchestrator.py      # 10-stage pipeline runner
+│   │   │   └── repair_loop.py       # Lesson authoring + review repair
+│   │   ├── services/                # One service per pipeline stage
+│   │   ├── models/course_models.py  # SQLAlchemy ORM models
+│   │   ├── common/llm_client.py     # Multi-provider LLM client
+│   │   └── prompts/                 # Modular versioned prompt library
+│   ├── alembic/                     # DB migration scripts
+│   └── requirements.txt
+│
+└── README.md
+```
 
 ---
 
@@ -90,69 +286,143 @@ Structura is a full-stack document-intelligence platform powered by a **10-Stage
 
 ### Prerequisites
 - Node.js 18+ & npm
-- Python 3.11+
-- PostgreSQL database instance
+- Python 3.12+
+- PostgreSQL instance (local or cloud)
+- Google Gemini API Key ([Get one here](https://aistudio.google.com))
 
-### 1. Backend Setup
+---
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/mrsahiljaiswal/Structura.git
+cd Structura
+```
+
+### 2. Backend Setup
 ```bash
 cd backend
-python -m venv venv
-# Windows: venv\Scripts\activate | Linux/macOS: source venv/bin/activate
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate (Windows)
+.venv\Scripts\activate
+# Activate (Linux/macOS)
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Create .env file in backend/
-DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5432/structura"
-GEMINI_API_KEY="your_gemini_api_key_here"
+# Create .env file
+cp .env.example .env
+```
 
-# Run FastAPI Server
+Edit `backend/.env`:
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/structura
+GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here   # optional fallback
+```
+
+```bash
+# Run database migrations
+alembic upgrade head
+
+# Start FastAPI server
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Frontend Setup
+API docs available at: `http://localhost:8000/api/v1/docs`
+
+---
+
+### 3. Frontend Setup
 ```bash
 cd frontend
+
+# Install dependencies
 npm install
 
-# Create .env.local file in frontend/
-NEXT_PUBLIC_API_URL="http://localhost:8000"
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="your_clerk_pub_key"
-CLERK_SECRET_KEY="your_clerk_secret_key"
+# Create .env.local file
+cp .env.example .env.local
+```
 
-# Run Next.js Dev Server
+Edit `frontend/.env.local`:
+```env
+VITE_API_URL=http://localhost:8000
+VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key_here
+```
+
+```bash
+# Start development server
 npm run dev
 ```
 
-Visit `http://localhost:3000` in your browser.
+Visit `http://localhost:5173` in your browser.
 
 ---
 
 ## 📡 API Endpoints Reference
 
 | Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `POST` | `/api/v1/documents/upload` | Upload PDF binary & trigger 8-stage course generation pipeline |
-| `GET` | `/api/v1/courses` | Retrieve enrolled user courses tree (Chapters & Lessons) |
-| `GET` | `/api/v1/courses/{course_id}` | Retrieve specific course details & chapters |
-| `DELETE` | `/api/v1/courses/{course_id}` | Delete course and cascade delete child chapters & lessons |
-| `GET` | `/api/v1/lessons/{lesson_id}` | Retrieve lesson theory, worked examples, and key takeaways |
+|:---|:---|:---|
+| `GET` | `/api/v1/health` | Health check |
+| `POST` | `/api/v1/documents/upload` | Upload PDF & trigger course generation pipeline |
+| `POST` | `/api/v1/documents/upload-batch` | Upload multiple PDFs for multi-document synthesis |
+| `GET` | `/api/v1/courses` | List all courses for the authenticated user |
+| `GET` | `/api/v1/courses/{course_id}` | Get specific course with chapters & lessons |
+| `DELETE` | `/api/v1/courses/{course_id}` | Delete course and cascade-delete all child records |
+| `GET` | `/api/v1/lessons/{lesson_id}` | Get lesson content, examples & key takeaways |
 | `PATCH` | `/api/v1/lessons/{lesson_id}/complete` | Toggle lesson completion status |
-| `POST` | `/api/v1/lessons/{lesson_id}/quiz` | Generate lesson practice quiz questions |
-| `POST` | `/api/v1/chat` | Course-grounded RAG chatbot & AI Tutor assistant |
+| `POST` | `/api/v1/lessons/{lesson_id}/quiz` | Generate adaptive quiz for a lesson |
+| `POST` | `/api/v1/chat` | RAG AI Tutor — course-grounded conversational Q&A |
+| `GET` | `/api/v1/user/progress` | Get user study progress, streaks & analytics |
+| `POST` | `/api/v1/user/progress` | Update user progress data |
+
+> All protected endpoints require `X-User-Id` header (Clerk user ID).
 
 ---
 
 ## 🌐 Deployment Guide
 
-### Vercel (Frontend)
-- Connect repository to Vercel.
-- Set Root Directory to `frontend` or rely on root `vercel.json`.
-- Add environment variable `NEXT_PUBLIC_API_URL` pointing to your deployed Render backend.
+### Frontend → Vercel
+```
+1. Connect GitHub repo to Vercel
+2. Set Root Directory: frontend
+3. Build Command: npm run build
+4. Output Directory: dist
+5. Add environment variables:
+   VITE_API_URL = https://your-render-backend.onrender.com
+   VITE_CLERK_PUBLISHABLE_KEY = pk_live_...
+```
 
-### Render (Backend)
-- Deploy Python Web Service using `render.yaml` or manual setup.
-- Build Command: `pip install -r requirements.txt`.
-- Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+### Backend → Render
+```
+1. Create a new Web Service on Render
+2. Connect GitHub repo
+3. Root Directory: backend
+4. Build Command: pip install -r requirements.txt
+5. Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+6. Add environment variables:
+   DATABASE_URL = postgresql://... (Internal Render DB URL)
+   GEMINI_API_KEY = AIzaSy...
+   GROQ_API_KEY = gsk_...
+```
+
+> ⚠️ Use the **Internal Database URL** (no domain suffix) when connecting from Render Web Service to Render PostgreSQL — it's faster and doesn't incur egress costs.
 
 ---
 
-&copy; 2026 Structura Inc. Released under the MIT License.
+## 📄 License
+
+MIT License © 2026 Sahil Jaiswal
+
+---
+
+<div align="center">
+
+Built with ❤️ by [Sahil Jaiswal](https://github.com/mrsahiljaiswal)
+
+⭐ Star this repo if you found it useful!
+
+</div>
